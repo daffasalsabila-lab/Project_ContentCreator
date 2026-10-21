@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Eye, EyeOff, Sparkles } from "lucide-react";
 
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Separator } from "../../components/ui/separator";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import { Separator } from "../../../components/ui/separator";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";
+} from "../../../components/ui/card";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +32,7 @@ export default function Login() {
               <Sparkles size={22} />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              NEXORA
+              Contect Creator
             </span>
           </div>
 
