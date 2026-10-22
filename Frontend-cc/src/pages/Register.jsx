@@ -1,4 +1,4 @@
-
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   Eye,
@@ -8,16 +8,16 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { Separator } from "../../../components/ui/separator";
+import { Button } from "../../components/ui/button.jsx";
+import { Input } from "../../components/ui/input.jsx";
+import { Label } from "../../components/ui/label.jsx";
+import { Separator } from "../../components/ui/separator.jsx";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../../components/ui/card";
+} from "../../components/ui/card";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -128,7 +128,8 @@ export default function Register() {
                     value={formData.name}
                     autoComplete="name"
                     required
-                    className="h-11 border-white/10 bg-white/[0.04] text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
+                    className="h-11 border-white/10 bg-white/0.04
+                    text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20" 
                   />
                 </div>
 
@@ -258,7 +259,7 @@ export default function Register() {
                 {/* Submit */}
                 <Button
                   type="submit"
-                  className="group h-11 w-full bg-violet-600 font-semibold text-white transition hover:bg-violet-500"
+                  className="group h-11 w-full bg-violet-600 font-semibold text-white transition hover:bg-violet-500" onClick={() => navigate("/login")}
                 >
                   Create account
                   <ArrowRight
