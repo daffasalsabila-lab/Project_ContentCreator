@@ -36,9 +36,9 @@ export default function Register() {
       <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-violet-600/20 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-blue-600/20 blur-[120px]" />
 
-      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] shadow-2xl backdrop-blur-xl md:grid-cols-2">
+      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-white/0.3 shadow-2xl backdrop-blur-xl md:grid-cols-2">
         {/* Left Panel */}
-        <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-violet-600 via-purple-700 to-indigo-900 p-10 md:flex">
+        <section className="relative hidden flex-col justify-between overflow-hidden bg-linear-to-br from-violet-600 via-purple-700 to-indigo-900 p-10 md:flex">
           <div className="absolute -right-20 top-32 h-64 w-64 rounded-full border border-white/20" />
           <div className="absolute -right-10 top-40 h-48 w-48 rounded-full border border-white/20" />
           <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full border border-white/10" />
@@ -49,17 +49,17 @@ export default function Register() {
             </div>
 
             <span className="text-xl font-bold tracking-tight">
-              NEXORA
+              Kreator Konten
             </span>
           </div>
 
           <div className="relative space-y-6">
             <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium">
-              START SOMETHING GREAT
+              Mulai perjalananmu di sini!
             </span>
 
             <h1 className="text-4xl font-bold leading-tight tracking-tight">
-              Your next chapter starts here.
+              Bergabunglah dengan komunitas kreator kami
             </h1>
 
             <p className="max-w-sm leading-7 text-white/70">
@@ -87,7 +87,7 @@ export default function Register() {
           </div>
 
           <p className="relative text-xs text-white/50">
-            © 2026 NEXORA. All rights reserved.
+            © 2026 Kreator Konten.
           </p>
         </section>
 
@@ -99,12 +99,12 @@ export default function Register() {
                 <Sparkles size={24} />
               </div>
 
-              <p className="text-sm font-medium tracking-widest text-violet-400">
+              {/* <p className="text-sm font-medium tracking-widest text-violet-400">
                 CREATE ACCOUNT
-              </p>
+              </p> */}
 
-              <CardTitle className="text-3xl font-bold tracking-tight">
-                Get started for free
+              <CardTitle className="text-3xl font-bold tracking-tight text-violet-400">
+                BUAT AKUN BARU
               </CardTitle>
 
               <p className="text-sm leading-6 text-white/50">
@@ -117,7 +117,7 @@ export default function Register() {
                 {/* Full Name */}
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-white/80">
-                    Full name
+                    Nama Lengkap
                   </Label>
 
                   <Input
@@ -125,18 +125,18 @@ export default function Register() {
                     name="name"
                     type="text"
                     placeholder="Masukkan nama lengkap"
-                    value={formData.name}
+                    defaultValue={formData.name}
                     autoComplete="name"
                     required
-                    className="h-11 border-white/10 bg-white/0.04
-                    text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20" 
+                    className="h-11 border-white/10 bg-white/0.4
+                    text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
                   />
                 </div>
 
                 {/* Email */}
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-white/80">
-                    Email address
+                    Alamat Email
                   </Label>
 
                   <Input
@@ -144,17 +144,17 @@ export default function Register() {
                     name="email"
                     type="email"
                     placeholder="nama@email.com"
-                    value={formData.email}
+                    defaultValue={formData.email}
                     autoComplete="email"
                     required
-                    className="h-11 border-white/10 bg-white/[0.04] text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
+                    className="h-11 border-white/10 bg-white/04 text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
                   />
                 </div>
 
                 {/* Password */}
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-white/80">
-                    Password
+                    Kata Sandi
                   </Label>
 
                   <div className="relative">
@@ -163,11 +163,11 @@ export default function Register() {
                       name="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Minimal 8 karakter"
-                      value={formData.password}
+                      defaultValue={formData.password}
                       autoComplete="new-password"
                       minLength={8}
                       required
-                      className="h-11 border-white/10 bg-white/[0.04] pr-11 text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
+                      className="h-11 border-white/10 bg-white/04 pr-11 text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
                     />
 
                     <button
@@ -193,7 +193,7 @@ export default function Register() {
                     htmlFor="confirmPassword"
                     className="text-white/80"
                   >
-                    Confirm password
+                    Konfirmasi Password
                   </Label>
 
                   <div className="relative">
@@ -205,7 +205,7 @@ export default function Register() {
                       value={formData.confirmPassword}
                       autoComplete="new-password"
                       required
-                      className="h-11 border-white/10 bg-white/[0.04] pr-11 text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
+                      className="h-11 border-pink-400/20 bg-pink-400/20 pr-11 text-white placeholder:text-white/30 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
                     />
 
                     <button
@@ -238,19 +238,19 @@ export default function Register() {
                   />
 
                   <span>
-                    I agree to the{" "}
+                    Saya menyetujui {" "}
                     <button
                       type="button"
                       className="text-violet-400 hover:text-violet-300"
                     >
-                      Terms of Service
+                      Ketentuan Layanan 
                     </button>{" "}
-                    and{" "}
+                    dan{" "}
                     <button
                       type="button"
                       className="text-violet-400 hover:text-violet-300"
                     >
-                      Privacy Policy
+                      Kebijakan Privasi
                     </button>
                     .
                   </span>
@@ -261,7 +261,7 @@ export default function Register() {
                   type="submit"
                   className="group h-11 w-full bg-violet-600 font-semibold text-white transition hover:bg-violet-500" onClick={() => navigate("/login")}
                 >
-                  Create account
+                  Buat Akun
                   <ArrowRight
                     size={18}
                     className="ml-2 transition-transform group-hover:translate-x-1"
@@ -276,12 +276,12 @@ export default function Register() {
               </div>
 
               <p className="text-center text-sm text-white/50">
-                Already have an account?{" "}
+                Sudah memiliki akun?{" "}
                 <a
                   href="/login"
                   className="font-semibold text-violet-400 transition hover:text-violet-300"
                 >
-                  Sign in
+                  Masuk
                 </a>
               </p>
             </CardContent>
