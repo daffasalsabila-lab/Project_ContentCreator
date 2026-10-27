@@ -7,7 +7,7 @@ import {
 
 
 
-export default function Dashboard() {
+export default function Dasbor() {
     return (
         <div className="flex h-screen bg-slate-100">
             {/* Sidebar */}
