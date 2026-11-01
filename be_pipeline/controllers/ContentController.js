@@ -56,13 +56,29 @@ export const getAllContents = async (req, res) => {
     }
 };
 
+
 export const getContentsById = async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
-        parseInt(id)
-        const [contents] = await pool.query("SELECT * FROM contents INNER JOIN content_checklists ON contents.id = content_checklists.content_id INNER JOIN content_metrics ON contents.id = content_metrics.content_id WHERE contents.id = ?", [id]);
+        const id = Number(req.params.id);
+        const userId = req.user.id;
 
-        if(contents.length === 0 || content[0].id !== id) {
+        // Validasi ID
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid content ID",
+            });
+        }
+
+        // Ambil content milik user yang sedang login
+        const [contents] = await pool.query(
+            `SELECT *
+             FROM contents
+             WHERE id = ? AND user_id = ?`,
+            [id, userId]
+        );
+
+        if (contents.length === 0) {
             return res.status(404).json({
                 status: false,
                 message: "Content not found",
@@ -72,8 +88,9 @@ export const getContentsById = async (req, res) => {
         return res.status(200).json({
             status: true,
             message: "Content retrieved successfully",
-            data: contents,
+            data: contents[0],
         });
+
     } catch (error) {
         console.error("Get contents by ID error:", error.message);
 
@@ -148,17 +165,17 @@ export const createContents = async (req, res) => {
 export const updateContents = async(req, res) => {
     try {
         const id = parseInt(req.params.id);
-        const { status }  = req.body;
+        const { title, description, status } = req.body;
         if(!status) {
             return res.status(400).json({
                 status: false,
-                message: "Missing required field: status"
+                message: "Title, description, and status are required"
             });
         }
-        await pool.query("UPDATE contents SET status = ? WHERE id = ?", [status, id]);
+        await pool.query("UPDATE contents SET status = ?, title = ?, description = ? WHERE id = ?", [status, title, description, id]);
         return res.status(200).json({
             status: true,
-            message: "Content status updated successfully",
+            message: "Content updated successfully",
         });
     } catch (error) {
         return res.status(500).json({
