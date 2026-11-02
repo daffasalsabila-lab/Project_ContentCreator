@@ -2,255 +2,343 @@ import pool from "../config/db.js";
 import { createContentSchema } from "../validations/createContentValidation.js";
 
 export const getAllContents = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { status, channels_id } = req.query;
+  try {
+    const userId = req.user.id;
+    const { status, channels_id } = req.query;
 
-        let sql = (`SELECT id, user_id, channels_id, title,	description, script_draft, format_type,	status,	priority, scheduled_date, published_date, published_url, created_at, updated_at	FROM contents WHERE user_id = ?`); 
-        
-        const params = [userId]
+    let sql = `SELECT id, user_id, channels_id, title,	description, script_draft, format_type,	status,	priority, scheduled_date, published_date, published_url, created_at, updated_at	FROM contents WHERE user_id = ?`;
 
-        if(status) {
-            const allowedStatus = [ "idea","scripting","recording","editing","ready","published"];
-        
-        if(!allowedStatus.includes(status)) {
-            return res.status(400).json({
-                status: false,
-                message: "Invalid content status",
-            });
-        }
+    const params = [userId];
 
-        sql += " AND status = ?";
-        params.push(status);
+    if (status) {
+      const allowedStatus = [
+        "idea",
+        "scripting",
+        "recording",
+        "editing",
+        "ready",
+        "published",
+      ];
 
-        }
-
-        if(channels_id) {
-            if(!/^[1-9]\d*$/.test(channels_id)){
-                return res.status(400).json({
-                    status: false,
-                    message: "Invalid channel ID",
-                });
-            }
-            sql += " AND channels_id = ?";
-            params.push(channels_id);
-        }
-
-        sql += " ORDER BY id DESC";
-
-        const [contents] = await pool.query(sql, params);
-
-        return res.status(200).json({
-            status: true,
-            message: "Contents retrieved successfully", 
-            data: contents,
+      if (!allowedStatus.includes(status)) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid content status",
         });
+      }
 
-    } catch (error) {
-        console.error("Get contents error:", error.message);
-
-        return res.status(500).json({
-            status: false,
-            message: "Internal server error",
-        });
+      sql += " AND status = ?";
+      params.push(status);
     }
+
+    if (channels_id) {
+      if (!/^[1-9]\d*$/.test(channels_id)) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid channel ID",
+        });
+      }
+      sql += " AND channels_id = ?";
+      params.push(channels_id);
+    }
+
+    sql += " ORDER BY id DESC";
+
+    const [contents] = await pool.query(sql, params);
+
+    return res.status(200).json({
+      status: true,
+      message: "Contents retrieved successfully",
+      data: contents,
+    });
+  } catch (error) {
+    console.error("Get contents error:", error.message);
+
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+    });
+  }
 };
 
-
 export const getContentsById = async (req, res) => {
-    try {
-        const id = Number(req.params.id);
-        const userId = req.user.id;
+  try {
+    const id = Number(req.params.id);
+    const userId = req.user.id;
 
-        // Validasi ID
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({
-                status: false,
-                message: "Invalid content ID",
-            });
-        }
+    // Validasi ID
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid content ID",
+      });
+    }
 
-        // Ambil content milik user yang sedang login
-        const [contents] = await pool.query(
-            `SELECT *
+    // Ambil content milik user yang sedang login
+    const [contents] = await pool.query(
+      `SELECT *
              FROM contents
              WHERE id = ? AND user_id = ?`,
-            [id, userId]
-        );
+      [id, userId],
+    );
 
-        if (contents.length === 0) {
-            return res.status(404).json({
-                status: false,
-                message: "Content not found",
-            });
-        }
-
-        return res.status(200).json({
-            status: true,
-            message: "Content retrieved successfully",
-            data: contents[0],
-        });
-
-    } catch (error) {
-        console.error("Get contents by ID error:", error.message);
-
-        return res.status(500).json({
-            status: false,
-            message: "Internal server error",
-        });
+    if (contents.length === 0) {
+      return res.status(404).json({
+        status: false,
+        message: "Content not found",
+      });
     }
+
+    return res.status(200).json({
+      status: true,
+      message: "Content retrieved successfully",
+      data: contents[0],
+    });
+  } catch (error) {
+    console.error("Get contents by ID error:", error.message);
+
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+    });
+  }
 };
 
 export const createContents = async (req, res) => {
-    try {
-        const { error, value } = createContentSchema.validate(req.body);
+  try {
+    const { error, value } = createContentSchema.validate(req.body);
 
-        if (error) {
-            return res.status(400).json({
-                status: false,
-                message: error.details[0].message,
-            });
-        }
+    if (error) {
+      return res.status(400).json({
+        status: false,
+        message: error.details[0].message,
+      });
+    }
 
-        const userId = req.user.id;
-        const {
-            channels_id, title, description, script_draft,
-            format_type, priority, scheduled_date,
-        } = value;
+    const userId = req.user.id;
 
-        const [channels] = await pool.query(
-            "SELECT id FROM channels WHERE id = ? AND user_id = ?",
-            [channels_id, userId]
-        );
+    console.log(userId);
 
-        if (!channels.length) {
-            return res.status(404).json({
-                status: false,
-                message: "Channel not found",
-            });
-        }
+    const {
+      channels_id,
+      title,
+      description,
+      script_draft,
+      format_type,
+      priority,
+      scheduled_date,
+    } = value;
 
-        const [result] = await pool.query(
-            `INSERT INTO contents
+    const [channels] = await pool.query(
+      "SELECT id FROM channels WHERE id = ? AND user_id = ?",
+      [channels_id, userId],
+    );
+
+    console.log(channels);
+
+    if (!channels.length) {
+      return res.status(404).json({
+        status: false,
+        message: "Channel not found",
+      });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO contents
             (user_id, channels_id, title, description, script_draft,
              format_type, status, priority, scheduled_date)
             VALUES (?, ?, ?, ?, ?, ?, 'idea', ?, ?)`,
-            [
-                userId, channels_id, title, description ?? null,
-                script_draft ?? null, format_type, priority,
-                scheduled_date ?? null,
-            ]
-        );
+      [
+        userId,
+        channels_id,
+        title,
+        description ?? null,
+        script_draft ?? null,
+        format_type,
+        priority,
+        scheduled_date ?? null,
+      ],
+    );
 
-        const [contents] = await pool.query(
-            "SELECT * FROM contents WHERE id = ? AND user_id = ?",
-            [result.insertId, userId]
-        );
+    const [contents] = await pool.query(
+      "SELECT * FROM contents WHERE id = ? AND user_id = ?",
+      [result.insertId, userId],
+    );
 
-        return res.status(201).json({
-            status: true,
-            message: "Content created successfully",
-            data: contents[0],
-        });
-    } catch (error) {
-        console.error("Create content error:", error);
+    return res.status(201).json({
+      status: true,
+      message: "Content created successfully",
+      data: contents[0],
+    });
+  } catch (error) {
+    console.error("Create content error:", error);
 
-        return res.status(500).json({
-            status: false,
-            message: "Internal server error",
-        });
-    }
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+    });
+  }
 };
 
-export const updateContents = async(req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        const { title, description, status, priority } = req.body;
-        if(!status) {
-            return res.status(400).json({
-                status: false,
-                message: "Title, description, and status are required"
-            });
-        }
-        await pool.query("UPDATE contents SET status = ?, title = ?, description = ?, priority = ? WHERE id = ?", [status, title, description, priority, id]);
-        return res.status(200).json({
-            status: true,
-            message: "Content updated successfully",
-        });
-    } catch (error) {
-        return res.status(500).json({
-            status: false,
-            message: "Internal server error",
-            error: error.message,
-        });
-    }
-}
+export const updateContents = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const {
+      channels_id,
+      title,
+      description,
+      script_draft,
+      format_type,
+      status,
+      priority,
+      scheduled_date,
+      published_date,
+      published_url,
+    } = req.body;
 
+    // Validasi sederhana: pastikan minimal judul atau status ada
+    if (!title || !status) {
+      return res.status(400).json({
+        status: false,
+        message: "Title and status are required",
+      });
+    }
+
+    // Aturan validasi ketat sesuai spesifikasi (CCP-05 & TC-03):
+    // Jika status diubah ke 'published', published_url wajib diisi dan berupa format URL yang valid
+    if (status === "published") {
+      if (!published_url) {
+        return res.status(400).json({
+          status: false,
+          message: "Published URL is required when status is published",
+        });
+      }
+
+      // Validasi sederhana format URL
+      try {
+        new URL(published_url);
+      } catch (_) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid published URL format",
+        });
+      }
+    }
+
+    // Eksekusi query update ke database (menyesuaikan seluruh kolom tabel contents)
+    const query = `
+      UPDATE contents 
+      SET channels_id = ?, 
+          title = ?, 
+          description = ?, 
+          script_draft = ?, 
+          format_type = ?, 
+          status = ?, 
+          priority = ?, 
+          scheduled_date = ?, 
+          published_date = ?, 
+          published_url = ?, 
+          updated_at = NOW() 
+      WHERE id = ?
+    `;
+
+    const values = [
+      channels_id || null,
+      title,
+      description || null,
+      script_draft || null,
+      format_type || "long_video",
+      status,
+      priority || "medium",
+      scheduled_date || null,
+      status === "published"
+        ? published_date || new Date().toISOString().split("T")[0]
+        : published_date || null,
+      published_url || null,
+      id,
+    ];
+
+    const [result] = await pool.query(query, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        status: false,
+        message: "Content not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Content updated successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 
 export const deleteContents = async (req, res) => {
-    try {
-        const id = Number(req.params.id);
-        const userId = req.user.id;
+  try {
+    const id = Number(req.params.id);
+    const userId = req.user.id;
 
-        // 1. Validasi ID
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({
-                status: false,
-                message: "Invalid content ID"
-            });
-        }
-
-        // 2. Cek apakah content milik user
-        const [contents] = await pool.query(
-            "SELECT id FROM contents WHERE id = ? AND user_id = ?",
-            [id, userId]
-        );
-
-        if (contents.length === 0) {
-            return res.status(404).json({
-                status: false,
-                message: "Content not found"
-            });
-        }
-
-        // 3. Hapus content
-        await pool.query(
-            "DELETE FROM contents WHERE id = ? AND user_id = ?",
-            [id, userId]
-        );
-
-        // 4. Kirim response
-        return res.status(200).json({
-            status: true,
-            message: "Content deleted successfully"
-        });
-
-    } catch (error) {
-        console.error("Delete contents error:", error.message);
-
-        return res.status(500).json({
-            status: false,
-            message: "Internal server error"
-        });
+    // 1. Validasi ID
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid content ID",
+      });
     }
+
+    // 2. Cek apakah content milik user
+    const [contents] = await pool.query(
+      "SELECT id FROM contents WHERE id = ? AND user_id = ?",
+      [id, userId],
+    );
+
+    if (contents.length === 0) {
+      return res.status(404).json({
+        status: false,
+        message: "Content not found",
+      });
+    }
+
+    // 3. Hapus content
+    await pool.query("DELETE FROM contents WHERE id = ? AND user_id = ?", [
+      id,
+      userId,
+    ]);
+
+    // 4. Kirim response
+    return res.status(200).json({
+      status: true,
+      message: "Content deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete contents error:", error.message);
+
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+    });
+  }
 };
-
-
-
-
 
 // try {
 //     const userId = req.user.id;
-//     const  {channel_id, title, description, script_draft, format_type, status, priority, scheduled_date, published_date, published_url} = req.body = req.body;
+//     const  {channels_id, title, description, script_draft, format_type, status, priority, scheduled_date, published_date, published_url} = req.body = req.body;
 
 //     // validasi input wajib
-//     if(!channel_id || !title || !description || !script_draft || !format_type || !status || !priority) 
-    // {
-    //     return res.status(400).json({
-    //         status: false,
-    //         message: "Channel ID, title, and format type are required",
-    //     });
-    // }
+//     if(!channels_id || !title || !description || !script_draft || !format_type || !status || !priority)
+// {
+//     return res.status(400).json({
+//         status: false,
+//         message: "Channel ID, title, and format type are required",
+//     });
+// }
 //     } catch (error) {
-    
+
 //     }
