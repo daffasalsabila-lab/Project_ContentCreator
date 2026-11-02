@@ -51,17 +51,17 @@ export const getAllChannels = async (req, res) => {
     }
 };
 
-// getOne
+// getById
 export const getChannelsById = async (req, res) => {
     try {
         const id = parseInt(req.params.id);
        const [channels] = await pool.query("SELECT * FROM channels WHERE id = ?", [id]);
        if(channels.length === 0){
-            return res.status(404).json({
-              status: false,
-              message: "Channel not found",
+        return res.status(404).json({
+            status: false,
+             message: "Channel not found",
             });
-          };
+        };
         return res.status(200).json({
             status: true,
             message: "Channels successfully",

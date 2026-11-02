@@ -7,6 +7,7 @@ import channelRoutes from "./routes/channelRoutes.js";
 import checklistRoutes from "./routes/checklistRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
 import metricRoutes from "./routes/metricRoutes.js";
+import cors from "cors";
 
 dotenv.config();
 
