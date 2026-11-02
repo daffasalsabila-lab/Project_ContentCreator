@@ -7,6 +7,7 @@ import {
   Radio,
   Loader2,
   Trash2,
+  Pencil,
   ExternalLink,
   X,
   Sparkles,
@@ -15,13 +16,13 @@ import {
 import contentService from "../services/contentService";
 
 const platformBadgeColors = {
-  Instagram:
+  instagram:
     "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-900",
-  YouTube:
+  youtube:
     "bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-300 border-red-200 dark:border-red-900",
-  TikTok:
+  tiktok:
     "bg-slate-900 dark:bg-slate-800 text-white border-slate-700 dark:border-slate-700",
-  LinkedIn:
+  linkedin:
     "bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-900",
 };
 
@@ -34,6 +35,7 @@ export default function Saluran() {
   const [search, setSearch] = useState("");
   const [platformFilter, setPlatformFilter] = useState("Semua");
   const [showModal, setShowModal] = useState(false);
+  const [editingChannel, setEditingChannel] = useState(null);
 
   const [newHandleName, setNewHandleName] = useState("");
   const [newPlatform, setNewPlatform] = useState("Instagram");
@@ -41,20 +43,41 @@ export default function Saluran() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchChannels();
-  }, []);
+    let active = true;
 
-  const fetchChannels = async () => {
-    try {
-      setLoading(true);
-      const response = await contentService.getChannels();
-      setChannels(response.data || response);
-    } catch (error) {
-      console.error("Gagal mengambil data saluran:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchChannels = async () => {
+      try {
+        const response = await contentService.getChannels();
+        const data = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.data?.channels)
+              ? response.data.channels
+              : Array.isArray(response?.channels)
+                ? response.channels
+                : null;
+
+        if (!data) {
+          throw new Error("Format data saluran tidak sesuai.");
+        }
+        if (active) setChannels(data);
+      } catch (error) {
+        console.error(
+          "Gagal mengambil data saluran:",
+          error.response?.data || error.message
+        );
+        if (active) setChannels([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void fetchChannels();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const connected = channels.filter(
     (channel) => channel.status === "Terhubung"
@@ -96,30 +119,44 @@ export default function Saluran() {
       ? trimmedHandle
       : `@${trimmedHandle}`;
 
-    // Mengambil user_id (contoh dari localStorage atau state auth Anda)
-    // Sesuaikan dengan cara aplikasi Anda menyimpan data user yang sedang login
-    const currentUserId = localStorage.getItem("user_id") || 1;
-
-    // Payload dengan tambahan user_id sesuai spesifikasi relasi tabel channels
     const newChannelData = {
-      user_id: Number(currentUserId), // Relasi ke users.id[cite: 4]
       handle_name: formattedHandle,
       platform: newPlatform.toLowerCase(),
     };
 
     try {
-      const response = await contentService.createChannel(newChannelData);
-      const createdChannel = response.data || response;
+      if (editingChannel) {
+        await contentService.updateChannel(editingChannel.id, newChannelData);
+        setChannels((prev) =>
+          prev.map((channel) =>
+            channel.id === editingChannel.id
+              ? { ...channel, ...newChannelData }
+              : channel
+          )
+        );
+      } else {
+        const response = await contentService.createChannel(newChannelData);
+        const createdChannel = response.data || response;
 
-      setChannels((prev) => [...prev, createdChannel]);
+        if (!createdChannel?.id) {
+          throw new Error("Respons server tidak berisi data saluran.");
+        }
+
+        setChannels((prev) => [...prev, createdChannel]);
+      }
 
       // Reset form dan tutup modal
       setNewHandleName("");
       setNewPlatform("Instagram");
       setShowModal(false);
+      setEditingChannel(null);
     } catch (error) {
       console.error("Gagal menambahkan saluran ke server:", error);
-      setFormError("Terjadi kesalahan saat menyimpan ke server.");
+      setFormError(
+        error.response?.data?.message ||
+          error.message ||
+          "Terjadi kesalahan saat menyimpan ke server."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -130,6 +167,17 @@ export default function Saluran() {
     setFormError("");
     setNewHandleName("");
     setNewPlatform("Instagram");
+    setEditingChannel(null);
+  }
+
+  function openEditModal(channel) {
+    setEditingChannel(channel);
+    setNewHandleName(channel.handle_name || "");
+    setNewPlatform(
+      `${channel.platform?.charAt(0).toUpperCase() || ""}${channel.platform?.slice(1) || ""}`
+    );
+    setFormError("");
+    setShowModal(true);
   }
 
   async function removeChannel(id) {
@@ -139,11 +187,15 @@ export default function Saluran() {
 
     if (confirmed) {
       try {
+        await contentService.deleteChannel(id);
         setChannels((prev) =>
           prev.filter((channel) => channel.id !== id)
         );
       } catch (error) {
-        console.error("Gagal menghapus saluran:", error);
+        console.error("Gagal menghapus saluran:", error.response?.data || error);
+        window.alert(
+          error.response?.data?.message || "Gagal menghapus saluran dari server."
+        );
       }
     }
   }
@@ -172,7 +224,12 @@ export default function Saluran() {
 
           <button
             type="button"
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setEditingChannel(null);
+              setNewHandleName("");
+              setNewPlatform("Instagram");
+              setShowModal(true);
+            }}
             className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-md transition hover:opacity-95"
           >
             <Plus size={19} />
@@ -241,7 +298,7 @@ export default function Saluran() {
             <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 sm:p-8">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
-                  Tambah Saluran Baru
+                  {editingChannel ? "Edit Saluran" : "Tambah Saluran Baru"}
                 </h2>
 
                 <button
@@ -314,7 +371,7 @@ export default function Saluran() {
                     className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50"
                   >
                     {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-                    Simpan Saluran
+                    {editingChannel ? "Simpan Perubahan" : "Simpan Saluran"}
                   </button>
                 </div>
               </form>
@@ -367,7 +424,7 @@ export default function Saluran() {
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredChannels.map((channel) => {
                 const badgeStyle =
-                  platformBadgeColors[channel.platform] ||
+                  platformBadgeColors[channel.platform?.toLowerCase()] ||
                   "bg-pink-50 dark:bg-pink-950 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-900";
 
                 return (
@@ -405,6 +462,15 @@ export default function Saluran() {
                     </div>
 
                     <div className="flex items-center justify-between gap-6 md:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(channel)}
+                        title="Edit saluran"
+                        aria-label={`Edit ${channel.handle_name}`}
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/60 dark:hover:text-blue-400"
+                      >
+                        <Pencil size={18} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => removeChannel(channel.id)}

@@ -35,16 +35,24 @@ export const contentService = {
     return await api.post("/channels", channelData);
   },
 
+  async updateChannel(id, channelData) {
+    return await api.put(`/channels/${id}`, channelData);
+  },
+
+  async deleteChannel(id) {
+    return await api.delete(`/channels/${id}`);
+  },
+
   // ==========================================
   // 3. CONTENTS CRUD & PIPELINE FILTER
   // ==========================================
   async getContents(params = {}) {
-    // params dapat berisi query filter seperti: { status, channel_id, format_type }
+    // params dapat berisi query filter seperti: { status, channels_id }
     return await api.get("/contents", { params });
   },
 
   async createContent(contentData) {
-    // contentData: { channel_id, title, description, script_draft, format_type, priority, scheduled_date }
+    // contentData: { channels_id, title, description, script_draft, format_type, priority, scheduled_date }
     return await api.post("/contents", contentData);
   },
 
@@ -65,14 +73,23 @@ export const contentService = {
   // 4. CONTENT CHECKLISTS
   // ==========================================
   async addChecklist(contentId, taskName) {
-    // taskName: { task_name }
     return await api.post(`/contents/${contentId}/checklists`, {
       task_name: taskName,
     });
   },
 
+  async getChecklists(contentId) {
+    return await api.get("/checklists", {
+      params: { content_id: contentId },
+    });
+  },
+
   async toggleChecklist(checklistId) {
     return await api.patch(`/checklists/${checklistId}/toggle`);
+  },
+
+  async deleteChecklist(checklistId) {
+    return await api.delete(`/checklists/${checklistId}`);
   },
 
   // ==========================================

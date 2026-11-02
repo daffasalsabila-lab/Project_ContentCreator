@@ -8,8 +8,6 @@ import {
   Send,
   Trash2,
   FileText,
-  Eye,
-  MessageSquare,
   X,
   Save,
   ArrowUpDown,
@@ -46,10 +44,6 @@ const inputClass =
 
 const areaClass = `${inputClass} p-3`;
 
-const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1"
-).replace(/\/$/, "");
-
 const today = () => new Date().toISOString().slice(0, 10);
 
 const unwrap = (value) => value?.data ?? value;
@@ -61,43 +55,6 @@ const validUrl = (value) => {
     return false;
   }
 };
-
-// ==========================================
-// REQUEST API CHECKLIST
-// ==========================================
-
-async function checklistRequest(path, options = {}) {
-  const token = ["token", "accessToken", "access_token", "authToken"]
-    .map((key) => localStorage.getItem(key))
-    .find(Boolean);
-
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-
-  const responseText = await response.text();
-
-  let data = null;
-
-  try {
-    data = responseText ? JSON.parse(responseText) : null;
-  } catch {
-    data = responseText;
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      data?.message || `Permintaan gagal (${response.status}).`
-    );
-  }
-
-  return data;
-}
 
 // ==========================================
 // MODAL
@@ -145,7 +102,7 @@ function Modal({ title, subtitle, onClose, children, wide = false }) {
 
 function AddContentModal({ channels, onClose, onSave }) {
   const [form, setForm] = useState({
-    channel_id: channels[0]?.id || "",
+    channels_id: channels[0]?.id || "",
     title: "",
     description: "",
     script_draft: "",
@@ -176,9 +133,11 @@ function AddContentModal({ channels, onClose, onSave }) {
           </label>
 
           <select
+            required
+            disabled={channels.length === 0}
             className={inputClass}
-            value={form.channel_id}
-            onChange={change("channel_id")}
+            value={form.channels_id}
+            onChange={change("channels_id")}
           >
             {channels.map((channel) => (
               <option key={channel.id} value={channel.id}>
@@ -186,6 +145,11 @@ function AddContentModal({ channels, onClose, onSave }) {
               </option>
             ))}
           </select>
+          {channels.length === 0 && (
+            <p className="mt-1 text-xs text-red-500">
+              Tambahkan saluran terlebih dahulu sebelum membuat konten.
+            </p>
+          )}
         </div>
 
         <div>
@@ -290,6 +254,7 @@ function AddContentModal({ channels, onClose, onSave }) {
 
           <button
             type="submit"
+            disabled={channels.length === 0}
             className="rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 px-6 py-2.5 text-sm font-semibold text-white"
           >
             Simpan Draf
@@ -315,28 +280,32 @@ function ChecklistPanel({ contentId }) {
     (item) => Number(item.is_completed) === 1
   ).length;
 
-  // Mengambil daftar checklist
-  const loadItems = async () => {
-    setLoading(true);
-    setError("");
-
-    try {
-      const result = await checklistRequest(
-        `/checklists?content_id=${encodeURIComponent(contentId)}`
-      );
-
-      const data = result?.data ?? result;
-
-      setItems(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message || "Checklist gagal dimuat.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadItems();
+    let active = true;
+
+    const fetchItems = async () => {
+      try {
+        const result = await contentService.getChecklists(contentId);
+        const data = unwrap(result);
+        if (active) {
+          setItems(Array.isArray(data) ? data : []);
+          setError("");
+        }
+      } catch (err) {
+        if (active) {
+          setError(
+            err.response?.data?.message || err.message || "Checklist gagal dimuat."
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void fetchItems();
+    return () => {
+      active = false;
+    };
   }, [contentId]);
 
   // Menambahkan tugas
@@ -347,22 +316,15 @@ function ChecklistPanel({ contentId }) {
     setError("");
 
     try {
-      const result = await checklistRequest(
-        `/contents/${contentId}/checklists`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            task_name: taskName.trim(),
-          }),
-        }
-      );
-
-      const created = result?.data ?? result;
+      const result = await contentService.addChecklist(contentId, taskName.trim());
+      const created = unwrap(result);
 
       if (created?.id) {
         setItems((prev) => [...prev, created]);
       } else {
-        await loadItems();
+        const result = await contentService.getChecklists(contentId);
+        const data = unwrap(result);
+        setItems(Array.isArray(data) ? data : []);
       }
 
       setTaskName("");
@@ -378,14 +340,8 @@ function ChecklistPanel({ contentId }) {
     setError("");
 
     try {
-      const result = await checklistRequest(
-        `/checklists/${item.id}/toggle`,
-        {
-          method: "PATCH",
-        }
-      );
-
-      const updated = result?.data ?? result;
+      const result = await contentService.toggleChecklist(item.id);
+      const updated = unwrap(result);
 
       setItems((prev) =>
         prev.map((task) =>
@@ -395,7 +351,7 @@ function ChecklistPanel({ contentId }) {
               is_completed:
                 updated?.is_completed !== undefined
                   ? updated.is_completed
-                  : !Boolean(Number(task.is_completed)),
+                  : Number(task.is_completed) !== 1,
             }
             : task
         )
@@ -414,9 +370,7 @@ function ChecklistPanel({ contentId }) {
     setError("");
 
     try {
-      await checklistRequest(`/checklists/${id}`, {
-        method: "DELETE",
-      });
+      await contentService.deleteChecklist(id);
 
       setItems((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
@@ -525,8 +479,8 @@ function ChecklistPanel({ contentId }) {
                 <div className="min-w-0 flex-1">
                   <p
                     className={`text-sm font-semibold ${isCompleted
-                        ? "text-slate-400 line-through"
-                        : "text-slate-800 dark:text-slate-100"
+                      ? "text-slate-400 line-through"
+                      : "text-slate-800 dark:text-slate-100"
                       }`}
                   >
                     {item.task_name || `Tugas ${index + 1}`}
@@ -644,36 +598,6 @@ function DetailModal({ item, onChange, onClose, onSave }) {
         {/* Checklist */}
         <ChecklistPanel key={item.id} contentId={item.id} />
 
-        <div>
-          <label className="mb-1 flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <Eye size={14} />
-            Link Preview Aset
-          </label>
-
-          <input
-            type="url"
-            className={inputClass}
-            value={item.asset_preview_url || ""}
-            onChange={field("asset_preview_url")}
-            placeholder="https://drive.google.com/..."
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <MessageSquare size={14} />
-            Review Editing & Revisi
-          </label>
-
-          <textarea
-            rows={3}
-            className={areaClass}
-            value={item.editing_review || ""}
-            onChange={field("editing_review")}
-            placeholder="Catatan revisi atau feedback..."
-          />
-        </div>
-
         <div className="rounded-2xl border border-pink-100 bg-pink-50/50 p-4 dark:border-pink-950 dark:bg-pink-950/30">
           <label className="mb-1 flex items-center gap-2 text-xs font-semibold text-pink-800 dark:text-pink-300">
             <Send size={14} />
@@ -727,6 +651,8 @@ export default function Alur_konten() {
   const [sortBy, setSortBy] = useState("date-asc");
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeContent, setActiveContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   // Mengambil data konten dan channel
   useEffect(() => {
@@ -735,11 +661,23 @@ export default function Alur_konten() {
       contentService.getChannels(),
     ])
       .then(([contentRes, channelRes]) => {
-        setContents(unwrap(contentRes) || []);
-        setChannels(unwrap(channelRes) || []);
+        const contentData = unwrap(contentRes);
+        const channelData = unwrap(channelRes);
+        if (!Array.isArray(contentData) || !Array.isArray(channelData)) {
+          throw new Error("Format data konten atau saluran tidak valid.");
+        }
+        setContents(contentData);
+        setChannels(channelData);
       })
       .catch((error) => {
         console.error("Gagal mengambil data:", error);
+        setLoadError(
+          error.response?.data?.message || error.message ||
+          "Gagal memuat konten dan saluran."
+        );
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, []);
 
@@ -890,7 +828,7 @@ export default function Alur_konten() {
 
     const payload = {
       ...form,
-      channel_id: form.channel_id ? Number(form.channel_id) : null,
+      channels_id: form.channels_id ? Number(form.channels_id) : null,
       title: form.title.trim(),
       description: form.description.trim(),
       script_draft: form.script_draft.trim(),
@@ -902,11 +840,19 @@ export default function Alur_konten() {
         await contentService.createContent(payload)
       );
 
+      if (!created?.id) {
+        throw new Error("Respons server tidak berisi data konten.");
+      }
+
       setContents((prev) => [created, ...prev]);
       setShowAddModal(false);
     } catch (error) {
       console.error(error);
-      alert("Gagal menyimpan konten baru ke server.");
+      alert(
+        error.response?.data?.message ||
+          error.message ||
+          "Gagal menyimpan konten baru ke server."
+      );
     }
   };
 
@@ -959,6 +905,7 @@ export default function Alur_konten() {
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
+            disabled={loading || loadError !== ""}
             className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-md"
           >
             <Plus size={19} />
@@ -993,6 +940,12 @@ export default function Alur_konten() {
             )
           )}
         </section>
+
+        {loadError && (
+          <p role="alert" className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+            {loadError}
+          </p>
+        )}
 
         {/* MODAL TAMBAH KONTEN */}
         {showAddModal && (
@@ -1120,10 +1073,10 @@ export default function Alur_konten() {
                     <td className="px-6 py-4">
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase ${item.priority === "high"
-                            ? "bg-red-50 text-red-600"
-                            : item.priority === "medium"
-                              ? "bg-amber-50 text-amber-600"
-                              : "bg-slate-100 text-slate-600"
+                          ? "bg-red-50 text-red-600"
+                          : item.priority === "medium"
+                            ? "bg-amber-50 text-amber-600"
+                            : "bg-slate-100 text-slate-600"
                           }`}
                       >
                         {item.priority}
@@ -1165,24 +1118,12 @@ export default function Alur_konten() {
 
                         <span
                           className={
-                            item.asset_preview_url
+                            item.description
                               ? "text-blue-600"
                               : "text-slate-400"
                           }
                         >
-                          <Eye size={14} className="inline" />
-                          {" "}Aset
-                        </span>
-
-                        <span
-                          className={
-                            item.editing_review
-                              ? "text-purple-600"
-                              : "text-slate-400"
-                          }
-                        >
-                          <MessageSquare size={14} className="inline" />
-                          {" "}Review
+                          Konsep
                         </span>
                       </div>
                     </td>
@@ -1210,14 +1151,22 @@ export default function Alur_konten() {
                   </tr>
                 ))}
 
-                {filteredContents.length === 0 && (
+                {!loading && filteredContents.length === 0 && (
                   <tr>
                     <td
                       colSpan={7}
                       className="p-12 text-center text-sm text-slate-400"
                     >
-                      Belum ada data konten. Klik "Tambah Konten Baru" untuk
-                      mulai membuat draf.
+                      {loadError
+                        ? "Data konten gagal dimuat."
+                        : "Belum ada data konten. Klik \"Tambah Konten Baru\" untuk mulai membuat draf."}
+                    </td>
+                  </tr>
+                )}
+                {loading && (
+                  <tr>
+                    <td colSpan={7} className="p-12 text-center text-sm text-slate-400">
+                      Memuat data konten...
                     </td>
                   </tr>
                 )}
