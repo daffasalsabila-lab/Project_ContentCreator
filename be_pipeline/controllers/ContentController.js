@@ -165,14 +165,14 @@ export const createContents = async (req, res) => {
 export const updateContents = async(req, res) => {
     try {
         const id = parseInt(req.params.id);
-        const { title, description, status } = req.body;
+        const { title, description, status, priority } = req.body;
         if(!status) {
             return res.status(400).json({
                 status: false,
                 message: "Title, description, and status are required"
             });
         }
-        await pool.query("UPDATE contents SET status = ?, title = ?, description = ? WHERE id = ?", [status, title, description, id]);
+        await pool.query("UPDATE contents SET status = ?, title = ?, description = ?, priority = ? WHERE id = ?", [status, title, description, priority, id]);
         return res.status(200).json({
             status: true,
             message: "Content updated successfully",
@@ -186,13 +186,55 @@ export const updateContents = async(req, res) => {
     }
 }
 
+
 export const deleteContents = async (req, res) => {
     try {
-        // const 
+        const id = Number(req.params.id);
+        const userId = req.user.id;
+
+        // 1. Validasi ID
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid content ID"
+            });
+        }
+
+        // 2. Cek apakah content milik user
+        const [contents] = await pool.query(
+            "SELECT id FROM contents WHERE id = ? AND user_id = ?",
+            [id, userId]
+        );
+
+        if (contents.length === 0) {
+            return res.status(404).json({
+                status: false,
+                message: "Content not found"
+            });
+        }
+
+        // 3. Hapus content
+        await pool.query(
+            "DELETE FROM contents WHERE id = ? AND user_id = ?",
+            [id, userId]
+        );
+
+        // 4. Kirim response
+        return res.status(200).json({
+            status: true,
+            message: "Content deleted successfully"
+        });
+
     } catch (error) {
-        
+        console.error("Delete contents error:", error.message);
+
+        return res.status(500).json({
+            status: false,
+            message: "Internal server error"
+        });
     }
-}
+};
+
 
 
 
