@@ -25,7 +25,8 @@ app.use(express.json());
 // Routes nya
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/channels", channelRoutes);
-app.use("/api/v1/checklists", checklistRoutes);
+// app.use("/api/v1/checklists", checklistRoutes);
+app.use("/api/v1", checklistRoutes);
 app.use("/api/v1/contents", contentRoutes);
 app.use("/api/v1/metrics", metricRoutes);
 
