@@ -54,52 +54,70 @@ export const getAllChannels = async (req, res) => {
 // getById
 export const getChannelsById = async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
-       const [channels] = await pool.query("SELECT * FROM channels WHERE id = ?", [id]);
-       if(channels.length === 0){
-        return res.status(404).json({
-            status: false,
-             message: "Channel not found",
+        const id = Number(req.params.id);
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid channel ID",
             });
-        };
+        }
+
+        const [channels] = await pool.query(
+            "SELECT id, user_id, platform, handle_name, created_at FROM channels WHERE id = ? AND user_id = ?",
+            [id, req.user.id]
+        );
+
+        if (channels.length === 0) {
+            return res.status(404).json({
+                status: false,
+                message: "Channel not found",
+            });
+        }
+
         return res.status(200).json({
             status: true,
-            message: "Channels successfully",
-            data: channels,
-        })
+            message: "Channel retrieved successfully",
+            data: channels[0],
+        });
     } catch (error) {
+        console.error("Get channel by ID error:", error.message);
         return res.status(500).json({
             status: false,
-            message: error.message,
+            message: "Internal server error",
         });
     }
 }
 
 export const createChannels = async (req, res) => {
     try {
-        // const user_id = req.user.id;
-        const { user_id,platform, handle_name } = req.body;
+        const userId = req.user.id;
+        const { platform, handle_name } = req.body;
 
-        if(!user_id, !platform, !handle_name) {
+        if (typeof platform !== "string" || !platform.trim() ||
+            typeof handle_name !== "string" || !handle_name.trim()) {
             return res.status(400).json({
                 status: false,
-                messaage: "user_id, platform and handle_name must be required",
+                message: "Platform and handle name are required",
             });
         }
-        const [channels] = await pool.query(`INSERT INTO channels (user_id, platform, handle_name) VALUES (?, ?, ?)`,[user_id, platform.trim(), handle_name.trim()]);
+
+        const [channels] = await pool.query(
+            "INSERT INTO channels (user_id, platform, handle_name) VALUES (?, ?, ?)",
+            [userId, platform.trim(), handle_name.trim()]
+        );
+
+        const [createdChannels] = await pool.query(
+            "SELECT id, user_id, platform, handle_name, created_at FROM channels WHERE id = ? AND user_id = ?",
+            [channels.insertId, userId]
+        );
+
         return res.status(201).json({
             status: true,
             message: "Channels created successfully",
-            data: {
-                id: channels.insertId,
-                user_id,
-                platform,
-                handle_name
-            }
+            data: createdChannels[0],
         });
     } catch (error) {
-        // ini untuk kalo si user udah pernah pakai nama channel nya, jadi error
-        if(error.code === ER_DUP_ENTRY){
+        if (error.code === "ER_DUP_ENTRY") {
             return res.status(400).json({
                 status: false,
                 message: "Channel already exists",
@@ -114,18 +132,58 @@ export const createChannels = async (req, res) => {
 
 export const updateChannels = async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
-        const { user_id, platform, handle_name } = req.body;
-        await pool.query("UPDATE channels SET user_id = ?, platform = ?,handle_name = ?, WHERE id ?", [user_id, platform, handle_name, id]);
-            return res.status(200).json({
-                status: true,
-                message: "Channels successfully",   
-            })
+        const id = Number(req.params.id);
+        const userId = req.user.id;
+        const { platform, handle_name } = req.body;
+
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid channel ID",
+            });
+        }
+
+        if (typeof platform !== "string" || !platform.trim() ||
+            typeof handle_name !== "string" || !handle_name.trim()) {
+            return res.status(400).json({
+                status: false,
+                message: "Platform and handle name are required",
+            });
+        }
+
+        const [result] = await pool.query(
+            "UPDATE channels SET platform = ?, handle_name = ? WHERE id = ? AND user_id = ?",
+            [platform.trim(), handle_name.trim(), id, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            const [existing] = await pool.query(
+                "SELECT id FROM channels WHERE id = ? AND user_id = ?",
+                [id, userId]
+            );
+            if (existing.length === 0) {
+                return res.status(404).json({
+                    status: false,
+                    message: "Channel not found",
+                });
+            }
+        }
+
+        return res.status(200).json({
+            status: true,
+            message: "Channel updated successfully",
+        });
     } catch (error) {
-        console.error(error);
+        console.error("Update channel error:", error.message);
+        if (error.code === "ER_DUP_ENTRY") {
+            return res.status(400).json({
+                status: false,
+                message: "Channel already exists",
+            });
+        }
         return res.status(500).json({
             status: false,
-            message: error.message
+            message: "Internal server error",
         })
     }
 }
@@ -133,48 +191,45 @@ export const updateChannels = async (req, res) => {
 // DELETE: Menghapus channel berdasarkan ID
 export const deleteChannels = async (req, res) => {
     try {
-        // const userId = req.user.id;
-        const { id } = req.params;
+        const id = Number(req.params.id);
+        const userId = req.user.id;
 
-        // Validasi ID
-        if(!user_id, !platform, !handle_name < 1) {
+        if (!Number.isSafeInteger(id) || id <= 0) {
             return res.status(400).json({
-                success: false,
+                status: false,
                 message: "Invalid channel ID",
             });
         }
 
-        // Periksa apakah channel milik user
-        const [existingChannels] = await pool.query(
-            `SELECT id FROM channels
-             WHERE id = ? AND user_id = ?`,
+        const [result] = await pool.query(
+            "DELETE FROM channels WHERE id = ? AND user_id = ?",
             [id, userId]
         );
 
-        if (existingChannels.length === 0) {
+        if (result.affectedRows === 0) {
             return res.status(404).json({
-                success: false,
+                status: false,
                 message: "Channel not found",
             });
         }
 
-        // Hapus channel
-        await pool.query(
-            `DELETE FROM channels
-             WHERE id = ? AND user_id = ?`,
-            [id, userId]
-        );
-
         return res.status(200).json({
-            success: true,
+            status: true,
             message: "Channel deleted successfully",
         });
 
     } catch (error) {
         console.error("Delete channel error:", error.message);
 
+        if (error.code === "ER_ROW_IS_REFERENCED_2") {
+            return res.status(409).json({
+                status: false,
+                message: "Channel cannot be deleted while it is used by content",
+            });
+        }
+
         return res.status(500).json({
-            success: false,
+            status: false,
             message: "Internal server error",
         });
     }

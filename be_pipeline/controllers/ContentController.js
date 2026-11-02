@@ -182,7 +182,8 @@ export const createContents = async (req, res) => {
 
 export const updateContents = async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = Number(req.params.id);
+    const userId = req.user.id;
     const {
       channels_id,
       title,
@@ -196,16 +197,30 @@ export const updateContents = async (req, res) => {
       published_url,
     } = req.body;
 
-    // Validasi sederhana: pastikan minimal judul atau status ada
-    if (!title || !status) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
       return res.status(400).json({
         status: false,
-        message: "Title and status are required",
+        message: "Invalid content ID",
       });
     }
 
-    // Aturan validasi ketat sesuai spesifikasi (CCP-05 & TC-03):
-    // Jika status diubah ke 'published', published_url wajib diisi dan berupa format URL yang valid
+    const allowedStatuses = [
+      "idea",
+      "scripting",
+      "recording",
+      "editing",
+      "ready",
+      "published",
+    ];
+
+    if (typeof title !== "string" || !title.trim() ||
+        !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        status: false,
+        message: "A valid title and content status are required",
+      });
+    }
+
     if (status === "published") {
       if (!published_url) {
         return res.status(400).json({
@@ -214,9 +229,11 @@ export const updateContents = async (req, res) => {
         });
       }
 
-      // Validasi sederhana format URL
       try {
-        new URL(published_url);
+        const url = new URL(published_url);
+        if (!["http:", "https:"].includes(url.protocol)) {
+          throw new Error("Unsupported URL protocol");
+        }
       } catch (_) {
         return res.status(400).json({
           status: false,
@@ -225,7 +242,19 @@ export const updateContents = async (req, res) => {
       }
     }
 
-    // Eksekusi query update ke database (menyesuaikan seluruh kolom tabel contents)
+    if (channels_id != null) {
+      const [channels] = await pool.query(
+        "SELECT id FROM channels WHERE id = ? AND user_id = ?",
+        [channels_id, userId]
+      );
+      if (channels.length === 0) {
+        return res.status(404).json({
+          status: false,
+          message: "Channel not found",
+        });
+      }
+    }
+
     const query = `
       UPDATE contents 
       SET channels_id = ?, 
@@ -239,12 +268,12 @@ export const updateContents = async (req, res) => {
           published_date = ?, 
           published_url = ?, 
           updated_at = NOW() 
-      WHERE id = ?
+      WHERE id = ? AND user_id = ?
     `;
 
     const values = [
       channels_id || null,
-      title,
+      title.trim(),
       description || null,
       script_draft || null,
       format_type || "long_video",
@@ -256,15 +285,22 @@ export const updateContents = async (req, res) => {
         : published_date || null,
       published_url || null,
       id,
+      userId,
     ];
 
     const [result] = await pool.query(query, values);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({
-        status: false,
-        message: "Content not found",
-      });
+      const [contents] = await pool.query(
+        "SELECT id FROM contents WHERE id = ? AND user_id = ?",
+        [id, userId]
+      );
+      if (contents.length === 0) {
+        return res.status(404).json({
+          status: false,
+          message: "Content not found",
+        });
+      }
     }
 
     return res.status(200).json({

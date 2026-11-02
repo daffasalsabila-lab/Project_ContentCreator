@@ -3,7 +3,8 @@ import express from "express";
 import {
     getAllChecklists,
     addChecklist,
-    toggleChecklists
+    toggleChecklists,
+    deleteChecklist
 } from "../controllers/checklistController.js";
 
 import { verifyToken } from "../middlewares/middlewares.js";
@@ -18,5 +19,6 @@ router.post("/contents/:id/checklists", verifyToken, addChecklist);
 
 // Mengubah status checklist (selesai / belum selesai)
 router.patch("/checklists/:id/toggle", verifyToken, toggleChecklists);
+router.delete("/checklists/:id", verifyToken, deleteChecklist);
 
 export default router;
