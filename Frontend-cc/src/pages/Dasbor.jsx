@@ -97,6 +97,8 @@ export default function Dasbor() {
     publishedThisMonth: 0,
   });
 
+  const users = JSON.parse(localStorage.getItem("user"));
+
   // State aktivitas konten (dimulai dari array kosong)
   const [recentContents, setRecentContents] = useState([]); 
 //   const [loading, setLoading] = useState(true);
@@ -135,8 +137,25 @@ export default function Dasbor() {
   }, []);
 
   return (
-    <div className="min-h-screen p-4 text-slate-800 transition-colors duration-300 dark:text-slate-100 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 p-4 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100 sm:p-6 lg:p-8">
+      <div className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full bg-pink-400/20 blur-[140px] dark:bg-pink-900/10 " />
+      <div className="pointer-events-none absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-blue-400/20 blur-[140px] dark:bg-blue-900/10" />
+
+      <div className="relative z-10 ">
+
+        {/* --- POJOK KANAN ATAS (2 Lingkaran) --- */}
+        {/* Lingkaran Besar */}
+        <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full border border-pink-400/20" />
+        {/* Lingkaran Kecil */}
+        <div className="absolute -right-10 -top-10 h-52 w-52 rounded-full border border-pink-600/20" />
+
+        {/* --- POJOK KIRI BAWAH (2 Lingkaran) --- */}
+        {/* Lingkaran Besar */}
+        <div className="absolute -left-20 -bottom-20 h-80 w-80 rounded-full border border-pink-400/20" />
+        {/* Lingkaran Kecil */}
+        <div className="absolute -left-10 -bottom-10 h-52 w-52 rounded-full border border-pink-600/20" />
+
+        
         {/* HEADER */}
         <section className="mb-8 flex flex-col justify-between gap-4 rounded-3xl border border-pink-200/40 bg-white/70 p-6 shadow-sm backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80 sm:flex-row sm:items-center sm:p-8">
           <div>
@@ -146,7 +165,7 @@ export default function Dasbor() {
             </div>
 
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 sm:text-3xl">
-              Halo, Creator 👋
+              Halo, {users?.name || "Creator"} 👋
             </h1>
 
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">

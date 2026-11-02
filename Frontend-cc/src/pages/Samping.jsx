@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { name: "Dasbor", path: "/", icon: LayoutDashboard },
+  { name: "Dasbor", path: "/dashboard", icon: LayoutDashboard },
   { name: "Alur Konten", path: "/alur-konten", icon: Kanban },
   { name: "Saluran", path: "/saluran", icon: Radio },
   { name: "Analitik", path: "/analitik", icon: BarChart3 },
@@ -26,10 +26,7 @@ export default function Samping({
   collapsed,
 
   // Data akun (nantinya dari backend)
-  user = {
-    name: "Nama Pengguna",
-    email: "pengguna@email.com",
-  },
+  user = JSON.parse(localStorage.getItem("user")),
 
   // URL foto profil dari backend
   avatarUrl = null,

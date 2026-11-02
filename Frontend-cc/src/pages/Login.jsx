@@ -33,11 +33,12 @@ export default function Login() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/v1/auth/login",
+        "http://localhost:3000/api/v1/auth/login",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Accept": "application/json",
           },
           body: JSON.stringify({
             email,

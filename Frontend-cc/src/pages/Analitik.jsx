@@ -154,6 +154,19 @@ export default function Analitik() {
       <div className="bg-blue-400/20 dark:bg-blue-900/10 pointer-events-none absolute -bottom-20 -right-20 h-96 w-96 rounded-full blur-[140px]" />
 
       <div className="relative z-10">
+
+        {/* --- POJOK KANAN ATAS (2 Lingkaran) --- */}
+        {/* Lingkaran Besar */}
+        <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full border border-pink-400/20" />
+        {/* Lingkaran Kecil */}
+        <div className="absolute -right-10 -top-10 h-52 w-52 rounded-full border border-pink-600/20" />
+
+        {/* --- POJOK KIRI BAWAH (2 Lingkaran) --- */}
+        {/* Lingkaran Besar */}
+        <div className="absolute -left-20 -bottom-20 h-80 w-80 rounded-full border border-pink-400/20" />
+        {/* Lingkaran Kecil */}
+        <div className="absolute -left-10 -bottom-10 h-52 w-52 rounded-full border border-pink-600/20" />
+
         {/* Header */}
         <div className="mb-8 flex flex-col justify-between gap-4 rounded-3xl border border-pink-200/40 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 p-6 shadow-sm backdrop-blur-md sm:flex-row sm:items-center sm:p-8">
           <div>

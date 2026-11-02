@@ -4,14 +4,15 @@ import {
   Search,
   Globe,
   CheckCircle2,
-  AlertCircle,
   Radio,
   Loader2,
   Trash2,
   ExternalLink,
   X,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
+import contentService from "../services/contentService";
 
 const platformBadgeColors = {
   Instagram:
@@ -34,26 +35,26 @@ export default function Saluran() {
   const [platformFilter, setPlatformFilter] = useState("Semua");
   const [showModal, setShowModal] = useState(false);
 
-  const [newName, setNewName] = useState("");
-  const [newUsername, setNewUsername] = useState("");
-  const [newUrl, setNewUrl] = useState("");
+  const [newHandleName, setNewHandleName] = useState("");
   const [newPlatform, setNewPlatform] = useState("Instagram");
-  const [urlError, setUrlError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchChannels = async () => {
-      try {
-        setLoading(true);
-        setChannels([]);
-      } catch (error) {
-        console.error("Gagal mengambil data saluran:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchChannels();
   }, []);
+
+  const fetchChannels = async () => {
+    try {
+      setLoading(true);
+      const response = await contentService.getChannels();
+      setChannels(response.data || response);
+    } catch (error) {
+      console.error("Gagal mengambil data saluran:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const connected = channels.filter(
     (channel) => channel.status === "Terhubung"
@@ -68,73 +69,67 @@ export default function Saluran() {
     const keyword = search.toLowerCase();
 
     const matchesSearch =
-      channel.name?.toLowerCase().includes(keyword) ||
-      channel.username?.toLowerCase().includes(keyword) ||
-      channel.handle_name?.toLowerCase().includes(keyword);
+      channel.handle_name?.toLowerCase().includes(keyword) ||
+      channel.username?.toLowerCase().includes(keyword);
 
     const matchesPlatform =
       platformFilter === "Semua" ||
-      channel.platform === platformFilter;
+      channel.platform?.toLowerCase() === platformFilter.toLowerCase();
 
     return matchesSearch && matchesPlatform;
   });
 
-  function addChannel(event) {
+  async function addChannel(event) {
     event.preventDefault();
 
-    const trimmedName = newName.trim();
-    const trimmedUsername = newUsername.trim();
-    const trimmedUrl = newUrl.trim();
+    const trimmedHandle = newHandleName.trim();
 
-    if (!trimmedName || !trimmedUsername) {
+    if (!trimmedHandle) {
+      setFormError("Handle name wajib diisi.");
       return;
     }
 
-    if (!trimmedUrl) {
-      setUrlError("URL platform wajib diisi.");
-      return;
-    }
+    setFormError("");
+    setIsSubmitting(true);
 
-    try {
-      new URL(trimmedUrl);
-    } catch {
-      setUrlError("Masukkan URL yang valid, contoh: https://instagram.com/bisnisku");
-      return;
-    }
+    const formattedHandle = trimmedHandle.startsWith("@")
+      ? trimmedHandle
+      : `@${trimmedHandle}`;
 
-    setUrlError("");
+    // Mengambil user_id (contoh dari localStorage atau state auth Anda)
+    // Sesuaikan dengan cara aplikasi Anda menyimpan data user yang sedang login
+    const currentUserId = localStorage.getItem("user_id") || 1;
 
+    // Payload dengan tambahan user_id sesuai spesifikasi relasi tabel channels
     const newChannelData = {
-      name: trimmedName,
-      handle_name: trimmedUsername.startsWith("@")
-        ? trimmedUsername
-        : `@${trimmedUsername}`,
-      url: trimmedUrl,
-      platform: newPlatform,
-      status: "Terhubung",
-      followers: 1250,
-      posts: 12,
+      user_id: Number(currentUserId), // Relasi ke users.id[cite: 4]
+      handle_name: formattedHandle,
+      platform: newPlatform.toLowerCase(),
     };
 
     try {
-      setChannels((prev) => [
-        ...prev,
-        { id: Date.now(), ...newChannelData },
-      ]);
+      const response = await contentService.createChannel(newChannelData);
+      const createdChannel = response.data || response;
 
-      setNewName("");
-      setNewUsername("");
-      setNewUrl("");
+      setChannels((prev) => [...prev, createdChannel]);
+
+      // Reset form dan tutup modal
+      setNewHandleName("");
       setNewPlatform("Instagram");
       setShowModal(false);
     } catch (error) {
-      console.error("Gagal menambahkan saluran:", error);
+      console.error("Gagal menambahkan saluran ke server:", error);
+      setFormError("Terjadi kesalahan saat menyimpan ke server.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   function closeModal() {
     setShowModal(false);
-    setUrlError("");
+    setFormError("");
+    setNewHandleName("");
+    setNewPlatform("Instagram");
   }
 
   async function removeChannel(id) {
@@ -259,76 +254,29 @@ export default function Saluran() {
                 </button>
               </div>
 
+              {formError && (
+                <div className="mt-4 flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/60 dark:text-red-400">
+                  <AlertCircle size={18} />
+                  <span>{formError}</span>
+                </div>
+              )}
+
               <form onSubmit={addChannel} className="mt-6 space-y-4">
                 <div>
                   <label
-                    htmlFor="channel-name"
+                    htmlFor="channel-handle"
                     className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400"
                   >
-                    Nama Saluran
+                    Handle Name
                   </label>
                   <input
-                    id="channel-name"
+                    id="channel-handle"
                     required
-                    value={newName}
-                    onChange={(event) => setNewName(event.target.value)}
-                    placeholder="Contoh: Bisnisku Official"
+                    value={newHandleName}
+                    onChange={(event) => setNewHandleName(event.target.value)}
+                    placeholder="Contoh: @techcreator"
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-pink-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                   />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="channel-username"
-                    className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400"
-                  >
-                    Username / Handle
-                  </label>
-                  <input
-                    id="channel-username"
-                    required
-                    value={newUsername}
-                    onChange={(event) => setNewUsername(event.target.value)}
-                    placeholder="Contoh: @bisnisku"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-pink-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="channel-url"
-                    className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400"
-                  >
-                    URL Platform / Analitik
-                  </label>
-                  <input
-                    id="channel-url"
-                    type="url"
-                    required
-                    value={newUrl}
-                    onChange={(event) => {
-                      setNewUrl(event.target.value);
-                      if (urlError) setUrlError("");
-                    }}
-                    placeholder="https://instagram.com/bisnisku"
-                    aria-invalid={Boolean(urlError)}
-                    aria-describedby={urlError ? "channel-url-error" : undefined}
-                    className={`w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-800 outline-none dark:bg-slate-800 dark:text-slate-100 ${
-                      urlError
-                        ? "border-red-500 focus:border-red-500 dark:border-red-500"
-                        : "border-slate-200 focus:border-pink-500 dark:border-slate-700"
-                    }`}
-                  />
-
-                  {urlError && (
-                    <p
-                      id="channel-url-error"
-                      role="alert"
-                      className="mt-1 text-xs text-red-600 dark:text-red-400"
-                    >
-                      {urlError}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -362,8 +310,10 @@ export default function Saluran() {
 
                   <button
                     type="submit"
-                    className="rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50"
                   >
+                    {isSubmitting && <Loader2 size={16} className="animate-spin" />}
                     Simpan Saluran
                   </button>
                 </div>
@@ -389,7 +339,7 @@ export default function Saluran() {
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari saluran atau username..."
+                  placeholder="Cari handle name..."
                   className="min-w-0 bg-transparent py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
                 />
               </div>
@@ -420,8 +370,6 @@ export default function Saluran() {
                   platformBadgeColors[channel.platform] ||
                   "bg-pink-50 dark:bg-pink-950 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-900";
 
-                const isConnected = channel.status === "Terhubung";
-
                 return (
                   <div
                     key={channel.id}
@@ -437,7 +385,7 @@ export default function Saluran() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-slate-900 dark:text-slate-100">
-                            {channel.name}
+                            {channel.handle_name || channel.username}
                           </h3>
 
                           {channel.url && (
@@ -446,60 +394,23 @@ export default function Saluran() {
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Kunjungi Tautan"
-                              aria-label={`Buka tautan ${channel.name}`}
+                              aria-label={`Buka tautan ${channel.handle_name}`}
                               className="text-slate-400 transition hover:text-pink-600 dark:hover:text-pink-400"
                             >
                               <ExternalLink size={14} />
                             </a>
                           )}
                         </div>
-
-                        <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                          {channel.handle_name || channel.username}
-                        </p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-6 md:justify-end">
-                      <div>
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                            isConnected
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                              : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
-                          }`}
-                        >
-                          {isConnected ? (
-                            <CheckCircle2 size={13} />
-                          ) : (
-                            <AlertCircle size={13} />
-                          )}
-                          {channel.status || "Perlu koneksi"}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-right sm:w-40">
-                        <div>
-                          <p className="text-xs text-slate-400">Pengikut</p>
-                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                            {formatNumber(channel.followers)}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-slate-400">Konten</p>
-                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                            {channel.posts || 0}
-                          </p>
-                        </div>
-                      </div>
-
                       <button
                         type="button"
                         onClick={() => removeChannel(channel.id)}
                         title="Hapus saluran"
-                        aria-label={`Hapus ${channel.name}`}
-                        className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/60 dark:hover:text-red-400"
+                        aria-label={`Hapus ${channel.handle_name}`}
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/60 dark:text-red-400"
                       >
                         <Trash2 size={18} />
                       </button>

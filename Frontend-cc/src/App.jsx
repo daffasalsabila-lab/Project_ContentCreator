@@ -13,7 +13,7 @@
         <Routes>
           {/* Rute Utama yang menggunakan MainLayout (Sidebar, Header, dll) */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<Dasbor />} />
+            <Route path="/dashboard" element={<Dasbor />} />
             <Route path="/alur-konten" element={<Alur_konten />} />
             <Route path="/saluran" element={<Saluran />} />
             <Route path="/analitik" element={<Analitik />} />
