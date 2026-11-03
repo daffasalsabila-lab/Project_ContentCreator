@@ -23,6 +23,7 @@ Teknologi dan tools yang digunakan dalam pengembangan backend:
 - **mysql2** – Library untuk koneksi dan interaksi dengan MySQL.
 - **JWT (JSON Web Token)** – Sistem autentikasi pengguna.
 - **bcrypt** – Untuk hashing password.
+- **Joi** – Library untuk validasi data dan memastikan request sesuai dengan aturan atau skema yang telah ditentukan.
 - **dotenv** – Mengelola environment variables.
 - **Nodemon** – Membantu proses development server.
 
