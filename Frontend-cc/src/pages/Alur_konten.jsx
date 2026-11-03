@@ -13,6 +13,10 @@ import {
   ArrowUpDown,
   Sparkles,
   ListTodo,
+  Eye,
+  Heart,
+  MessageCircle,
+  Share2,
 } from "lucide-react";
 
 import contentService from "../services/contentService";
@@ -505,6 +509,209 @@ function ChecklistPanel({ contentId }) {
   );
 }
 
+function MetricsPanel({ contentId }) {
+  const [metrics, setMetrics] = useState([]);
+  const [form, setForm] = useState({
+    views_count: "0",
+    likes_count: "0",
+    comments_count: "0",
+    shares_count: "0",
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchMetrics = async () => {
+      try {
+        const response = await contentService.getContentMetrics(contentId);
+        const data = unwrap(response);
+        if (!Array.isArray(data)) {
+          throw new Error("Format data metrics tidak valid.");
+        }
+        if (active) {
+          setMetrics(
+            [...data].sort((a, b) => Number(b.id) - Number(a.id))
+          );
+        }
+      } catch (err) {
+        if (active) {
+          setError(
+            err.response?.data?.message || err.message || "Metrics gagal dimuat."
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void fetchMetrics();
+    return () => {
+      active = false;
+    };
+  }, [contentId]);
+
+  const updateField = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const saveMetrics = async () => {
+    setError("");
+
+    const values = Object.fromEntries(
+      Object.entries(form).map(([key, value]) => [key, Number(value)])
+    );
+    const hasInvalidValue = Object.entries(values).some(
+      ([key, value]) =>
+        !form[key].trim() || !Number.isSafeInteger(value) || value < 0
+    );
+    if (hasInvalidValue) {
+      setError("Metrics harus berupa bilangan bulat nol atau lebih.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await contentService.addContentMetric(contentId, values);
+      const created = unwrap(response);
+      if (!created?.id) {
+        throw new Error("Respons server tidak berisi data metrics.");
+      }
+
+      setMetrics((current) => [created, ...current]);
+      setForm({
+        views_count: "0",
+        likes_count: "0",
+        comments_count: "0",
+        shares_count: "0",
+      });
+    } catch (err) {
+      setError(
+        err.response?.data?.message || err.message || "Metrics gagal disimpan."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const latestMetric = metrics[0];
+  const fields = [
+    { name: "views_count", label: "Tayangan", icon: Eye },
+    { name: "likes_count", label: "Likes", icon: Heart },
+    { name: "comments_count", label: "Komentar", icon: MessageCircle },
+    { name: "shares_count", label: "Shares", icon: Share2 },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4 dark:border-blue-950 dark:bg-blue-950/20">
+      <div>
+        <h3 className="font-bold text-slate-800 dark:text-slate-100">
+          Metrics Performa
+        </h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Catat snapshot performa konten. Tanggal pencatatan mengikuti tanggal server.
+        </p>
+      </div>
+
+      {latestMetric && (
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {fields.map(({ name, label, icon: Icon }) => (
+            <div
+              key={name}
+              className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
+            >
+              <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Icon size={14} />
+                {label}
+              </p>
+              <p className="mt-1 font-bold text-slate-900 dark:text-slate-100">
+                {new Intl.NumberFormat("id-ID").format(
+                  Number(latestMetric[name]) || 0
+                )}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 space-y-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {fields.map(({ name, label }) => (
+            <label
+              key={name}
+              className="text-xs font-semibold text-slate-600 dark:text-slate-300"
+            >
+              {label}
+              <input
+                required
+                type="number"
+                min="0"
+                step="1"
+                name={name}
+                value={form[name]}
+                onChange={updateField}
+                className={`${inputClass} mt-1`}
+              />
+            </label>
+          ))}
+        </div>
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-300">
+            {error}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-slate-500">
+            {loading ? "Memuat riwayat metrics..." : `${metrics.length} catatan`}
+          </p>
+          <button
+            type="button"
+            onClick={saveMetrics}
+            disabled={saving}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+          >
+            {saving ? "Menyimpan..." : "Simpan Metrics Hari Ini"}
+          </button>
+        </div>
+      </div>
+
+      {!loading && metrics.length > 0 && (
+        <div className="mt-4 space-y-2 border-t border-blue-100 pt-4 dark:border-blue-900">
+          <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            Riwayat
+          </h4>
+          {metrics.map((metric) => (
+            <div
+              key={metric.id}
+              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-300"
+            >
+              <span>
+                {metric.recorded_at
+                  ? new Date(metric.recorded_at).toLocaleDateString("id-ID")
+                  : "Tanggal tidak tersedia"}
+              </span>
+              <span>
+                {new Intl.NumberFormat("id-ID").format(Number(metric.views_count) || 0)} tayangan
+                {" · "}
+                {new Intl.NumberFormat("id-ID").format(Number(metric.likes_count) || 0)} likes
+                {" · "}
+                {new Intl.NumberFormat("id-ID").format(Number(metric.comments_count) || 0)} komentar
+                {" · "}
+                {new Intl.NumberFormat("id-ID").format(Number(metric.shares_count) || 0)} shares
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ==========================================
 // MODAL DETAIL KONTEN
 // ==========================================
@@ -597,6 +804,8 @@ function DetailModal({ item, onChange, onClose, onSave }) {
 
         {/* Checklist */}
         <ChecklistPanel key={item.id} contentId={item.id} />
+
+        <MetricsPanel key={`metrics-${item.id}`} contentId={item.id} />
 
         <div className="rounded-2xl border border-pink-100 bg-pink-50/50 p-4 dark:border-pink-950 dark:bg-pink-950/30">
           <label className="mb-1 flex items-center gap-2 text-xs font-semibold text-pink-800 dark:text-pink-300">

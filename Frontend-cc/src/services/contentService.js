@@ -96,8 +96,11 @@ export const contentService = {
   // 5. CONTENT METRICS / ANALYTICS
   // ==========================================
   async addContentMetric(contentId, metricData) {
-    // metricData: { recorded_at, views_count, likes_count, comments_count, shares_count }
     return await api.post(`/contents/${contentId}/metrics`, metricData);
+  },
+
+  async getContentMetrics(contentId) {
+    return await api.get(`/contents/${contentId}/metrics`);
   },
 };
 
