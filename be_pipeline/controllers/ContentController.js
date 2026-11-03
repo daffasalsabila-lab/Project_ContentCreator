@@ -184,6 +184,7 @@ export const updateContents = async (req, res) => {
   try {
     const id = Number(req.params.id);
     const userId = req.user.id;
+    const userRole = req.user.role;
     const {
       channels_id,
       title,
@@ -204,6 +205,33 @@ export const updateContents = async (req, res) => {
       });
     }
 
+    const roleStatusAccess = {
+      creator: ["idea", "scripting", "recording", "editing"],
+      editor: ["editing", "ready", "published"],
+      admin: [
+        "idea",
+        "scripting",
+        "recording",
+        "editing",
+        "ready",
+        "published",
+      ],
+    };
+
+    if (!roleStatusAccess[userRole]) {
+      return res.status(403).json({
+        status: false,
+        message: "Invalid user role",
+      });
+    }
+
+    if (!roleStatusAccess[userRole].includes(status)) {
+      return res.status(403).json({
+        status: false,
+        message: `Your role (${userRole}) cannot update content to ${status}`,
+      });
+    }
+
     const allowedStatuses = [
       "idea",
       "scripting",
@@ -213,8 +241,11 @@ export const updateContents = async (req, res) => {
       "published",
     ];
 
-    if (typeof title !== "string" || !title.trim() ||
-        !allowedStatuses.includes(status)) {
+    if (
+      typeof title !== "string" ||
+      !title.trim() ||
+      !allowedStatuses.includes(status)
+    ) {
       return res.status(400).json({
         status: false,
         message: "A valid title and content status are required",
@@ -245,7 +276,7 @@ export const updateContents = async (req, res) => {
     if (channels_id != null) {
       const [channels] = await pool.query(
         "SELECT id FROM channels WHERE id = ? AND user_id = ?",
-        [channels_id, userId]
+        [channels_id, userId],
       );
       if (channels.length === 0) {
         return res.status(404).json({
@@ -293,7 +324,7 @@ export const updateContents = async (req, res) => {
     if (result.affectedRows === 0) {
       const [contents] = await pool.query(
         "SELECT id FROM contents WHERE id = ? AND user_id = ?",
-        [id, userId]
+        [id, userId],
       );
       if (contents.length === 0) {
         return res.status(404).json({

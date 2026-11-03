@@ -7,6 +7,7 @@ import channelRoutes from "./routes/channelRoutes.js";
 import checklistRoutes from "./routes/checklistRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
 import metricRoutes from "./routes/metricRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import cors from "cors";
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use("/api/v1/channels", channelRoutes);
 // app.use("/api/v1/checklists", checklistRoutes);
 app.use("/api/v1", checklistRoutes);
 app.use("/api/v1/contents", contentRoutes);
+app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/metrics", metricRoutes);
 
 app.get("/", (req, res) => {
