@@ -17,7 +17,7 @@ const navItems = [
   { name: "Dasbor", path: "/dashboard", icon: LayoutDashboard },
   { name: "Alur Konten", path: "/alur-konten", icon: Kanban },
   { name: "Saluran", path: "/saluran", icon: Radio },
-  { name: "Analitik", path: "/analitik", icon: BarChart3 },
+  // { name: "Analitik", path: "/analitik", icon: BarChart3 },
 ];
 
 export default function Samping({
