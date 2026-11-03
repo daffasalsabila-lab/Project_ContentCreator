@@ -141,10 +141,9 @@ export default function Samping({
                   title={collapsed ? item.name : undefined}
                   aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition
-                    ${
-                      active
-                        ? "bg-gradient-to-r from-pink-500 to-blue-600 text-white shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                    ${active
+                      ? "bg-gradient-to-r from-pink-500 to-blue-600 text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
                     }
                     ${collapsed ? "md:justify-center md:px-2" : ""}`}
                 >
@@ -184,7 +183,7 @@ export default function Samping({
                   {user?.name || "Nama Pengguna"}
                 </p>
                 <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {user?.email || "pengguna@email.com"}
+                  {user?.role || "Kreator"}
                 </p>
               </div>
             )}
@@ -239,7 +238,7 @@ export default function Samping({
                 id="logout-description"
                 className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400"
               >
-                Apakah kamu yakin ingin keluar dari akun ini? 
+                Apakah kamu yakin ingin keluar dari akun ini?
                 Kamu harus masuk kembali untuk mengakses akunmu.
               </p>
             </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 import { Eye, EyeOff, Sparkles } from "lucide-react";
@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import api from "../services/api.js";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -31,9 +32,17 @@ export default function Login() {
     setError("");
     setLoading(true);
 
+
     try {
+      const res = await api.post('http://192.168.40.145:3000/api/v1/auth/login', {
+        email: email,
+        password: password
+      })
+
+      console.log(res)
+
       const response = await fetch(
-        "http://localhost:3000/api/v1/auth/login",
+        "http://192.168.40.145:3000/api/v1/auth/login",
         {
           method: "POST",
           headers: {
@@ -55,6 +64,7 @@ export default function Login() {
       }
 
       // Simpan token dan informasi pengguna
+
       localStorage.setItem("token", result.data.token);
 
       localStorage.setItem(
@@ -62,8 +72,23 @@ export default function Login() {
         JSON.stringify(result.data.user)
       );
 
-      // Pindah ke dashboard
-      navigate("/dashboard");
+      switch (result.data.user.role) {
+        case "creator":
+          navigate("/kreator/dashboard")
+          break;
+
+        case "editor":
+          navigate("/pengedit/dashboard")
+          break;
+
+        case "admin":
+          navigate("/admin/dashboard")
+          break
+
+        default:
+          break;
+      }
+
 
     } catch (error) {
       console.error("Login error:", error);
@@ -72,6 +97,16 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  fetch('http://192.168.40.145:3000/api/v1/auth/login', {
+    method: "POST",
+    body: {
+      email: "aira123@gmail.com",
+      password: "12345678"
+    }
+  }).then(data => {
+    console.log(data)
+  })
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-pink-400 via-purple-300 to-blue-500 px-4 py-10 transition-colors duration-300 dark:[background:radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] dark:from-slate-900 dark:via-slate-950 dark:to-black">

@@ -13,6 +13,7 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-dvh bg-slate-50 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+      { }
       <Samping
         isOpen={isOpen}
         onClose={closeSidebar}
@@ -21,9 +22,8 @@ export default function MainLayout() {
 
       {/* Area konten bergeser sesuai ukuran sidebar desktop */}
       <div
-        className={`min-h-dvh transition-[margin] duration-300 ${
-          collapsed ? "md:ml-20" : "md:ml-64"
-        }`}
+        className={`min-h-dvh transition-[margin] duration-300 ${collapsed ? "md:ml-20" : "md:ml-64"
+          }`}
       >
         <header className="flex h-20 items-center justify-between border-b border-slate-200/70 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80 sm:px-6">
           <div className="flex items-center gap-3">
