@@ -18,7 +18,7 @@ router.get("/checklists", verifyToken, getAllChecklists);
 router.post("/contents/:id/checklists", verifyToken, addChecklist);
 
 // Mengubah status checklist (selesai / belum selesai)
-router.patch("/checklists/:id/toggle", verifyToken, toggleChecklists);
+router.put("/checklists/:id/toggle", verifyToken, toggleChecklists);
 router.delete("/checklists/:id", verifyToken, deleteChecklist);
 
 export default router;

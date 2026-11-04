@@ -1,5 +1,34 @@
 import pool from "../config/db.js";
 
+export const getEditors = async (req, res) => {
+  if (req.user.role !== "creator") {
+    return res.status(403).json({
+      status: false,
+      message: "Only creators can retrieve editors",
+    });
+  }
+
+  try {
+    const [editors] = await pool.query(
+      `SELECT id, name
+       FROM users
+       WHERE role = 'editor'
+       ORDER BY name ASC, id ASC`,
+    );
+
+    return res.status(200).json({
+      status: true,
+      data: editors,
+    });
+  } catch (error) {
+    console.error("Get editors error:", error.message);
+    return res.status(500).json({
+      status: false,
+      message: "Failed to retrieve editors",
+    });
+  }
+};
+
 export const getAllUsers = async (req, res) => {
   try {
     const [users] = await pool.query(`

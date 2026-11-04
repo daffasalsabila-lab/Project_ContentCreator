@@ -4,9 +4,10 @@ import { createContentSchema } from "../validations/createContentValidation.js";
 export const getAllContents = async (req, res) => {
   try {
     const userId = req.user.id;
+    const ownerColumn = req.user.role === "editor" ? "editor_id" : "user_id";
     const { status, channels_id } = req.query;
 
-    let sql = `SELECT id, user_id, channels_id, title,	description, script_draft, format_type,	status,	priority, scheduled_date, published_date, published_url, created_at, updated_at	FROM contents WHERE user_id = ?`;
+    let sql = `SELECT id, user_id, editor_id, channels_id, title, description, script_draft, format_type, status, priority, scheduled_date, published_date, published_url, review_url, editing_url, created_at, updated_at FROM contents WHERE ${ownerColumn} = ?`;
 
     const params = [userId];
 
@@ -65,6 +66,7 @@ export const getContentsById = async (req, res) => {
   try {
     const id = Number(req.params.id);
     const userId = req.user.id;
+    const ownerColumn = req.user.role === "editor" ? "editor_id" : "user_id";
 
     // Validasi ID
     if (!Number.isSafeInteger(id) || id <= 0) {
@@ -78,7 +80,7 @@ export const getContentsById = async (req, res) => {
     const [contents] = await pool.query(
       `SELECT *
              FROM contents
-             WHERE id = ? AND user_id = ?`,
+             WHERE id = ? AND ${ownerColumn} = ?`,
       [id, userId],
     );
 
@@ -116,8 +118,27 @@ export const createContents = async (req, res) => {
     }
 
     const userId = req.user.id;
+    const { editor_id } = value;
 
-    console.log(userId);
+    if (req.user.role !== "creator" && editor_id != null) {
+      return res.status(403).json({
+        status: false,
+        message: "Only creators can assign an editor",
+      });
+    }
+
+    if (editor_id != null) {
+      const [editors] = await pool.query(
+        "SELECT id FROM users WHERE id = ? AND role = 'editor'",
+        [editor_id],
+      );
+      if (editors.length === 0) {
+        return res.status(400).json({
+          status: false,
+          message: "Selected editor is not valid",
+        });
+      }
+    }
 
     const {
       channels_id,
@@ -134,8 +155,6 @@ export const createContents = async (req, res) => {
       [channels_id, userId],
     );
 
-    console.log(channels);
-
     if (!channels.length) {
       return res.status(404).json({
         status: false,
@@ -145,11 +164,12 @@ export const createContents = async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO contents
-            (user_id, channels_id, title, description, script_draft,
+            (user_id, editor_id, channels_id, title, description, script_draft,
              format_type, status, priority, scheduled_date)
-            VALUES (?, ?, ?, ?, ?, ?, 'idea', ?, ?)`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'idea', ?, ?)`,
       [
         userId,
+        editor_id ?? null,
         channels_id,
         title,
         description ?? null,
@@ -196,6 +216,7 @@ export const updateContents = async (req, res) => {
       scheduled_date,
       published_date,
       published_url,
+      editor_id,
     } = req.body;
 
     if (!Number.isSafeInteger(id) || id <= 0) {
@@ -207,7 +228,7 @@ export const updateContents = async (req, res) => {
 
     const roleStatusAccess = {
       creator: ["idea", "scripting", "recording", "editing"],
-      editor: ["editing", "ready", "published"],
+      editor: ["editing", "ready"],
       admin: [
         "idea",
         "scripting",
@@ -252,6 +273,103 @@ export const updateContents = async (req, res) => {
       });
     }
 
+    const ownerColumn = userRole === "editor" ? "editor_id" : "user_id";
+    const [existingContents] = await pool.query(
+      `SELECT id, channels_id, editor_id, status, review_url, editing_url
+       FROM contents
+       WHERE id = ? AND ${ownerColumn} = ?`,
+      [id, userId],
+    );
+    if (existingContents.length === 0) {
+      return res.status(404).json({
+        status: false,
+        message: "Content not found",
+      });
+    }
+
+    const existingContent = existingContents[0];
+    let editorId = existingContent.editor_id;
+    let reviewUrl = existingContent.review_url;
+    let editingUrl = existingContent.editing_url;
+
+    const isOptionalHttpUrl = (value) => {
+      if (value == null || value === "") return true;
+      if (typeof value !== "string") return false;
+      try {
+        return ["http:", "https:"].includes(new URL(value).protocol);
+      } catch {
+        return false;
+      }
+    };
+
+    if (
+      userRole === "creator" &&
+      ["recording", "editing"].includes(status) &&
+      Object.prototype.hasOwnProperty.call(req.body, "review_url")
+    ) {
+      if (!isOptionalHttpUrl(req.body.review_url)) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid review URL format",
+        });
+      }
+      reviewUrl = req.body.review_url || null;
+    }
+
+    if (
+      userRole === "editor" &&
+      existingContent.status === "editing" &&
+      Object.prototype.hasOwnProperty.call(req.body, "editing_url")
+    ) {
+      if (!isOptionalHttpUrl(req.body.editing_url)) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid editing URL format",
+        });
+      }
+      editingUrl = req.body.editing_url || null;
+    }
+
+    if (
+      userRole === "creator" &&
+      Object.prototype.hasOwnProperty.call(req.body, "editor_id")
+    ) {
+      const normalizedEditorId =
+        editor_id == null ? null : Number(editor_id);
+      if (
+        editor_id != null &&
+        (
+          !["number", "string"].includes(typeof editor_id) ||
+          !Number.isSafeInteger(normalizedEditorId) ||
+          normalizedEditorId <= 0
+        )
+      ) {
+        return res.status(400).json({
+          status: false,
+          message: "Editor ID must be a positive integer or null",
+        });
+      }
+
+      if (editor_id != null) {
+        const [editors] = await pool.query(
+          "SELECT id FROM users WHERE id = ? AND role = 'editor'",
+          [editor_id],
+        );
+        if (editors.length === 0) {
+          return res.status(400).json({
+            status: false,
+            message: "Selected editor is not valid",
+          });
+        }
+      }
+      editorId = normalizedEditorId;
+    }
+
+    const channelId =
+      userRole === "editor"
+        ? existingContent.channels_id
+        : channels_id ?? existingContent.channels_id;
+
     if (status === "published") {
       if (!published_url) {
         return res.status(400).json({
@@ -273,10 +391,10 @@ export const updateContents = async (req, res) => {
       }
     }
 
-    if (channels_id != null) {
+    if (userRole !== "editor" && channelId != null) {
       const [channels] = await pool.query(
         "SELECT id FROM channels WHERE id = ? AND user_id = ?",
-        [channels_id, userId],
+        [channelId, userId],
       );
       if (channels.length === 0) {
         return res.status(404).json({
@@ -289,6 +407,7 @@ export const updateContents = async (req, res) => {
     const query = `
       UPDATE contents 
       SET channels_id = ?, 
+          editor_id = ?,
           title = ?, 
           description = ?, 
           script_draft = ?, 
@@ -298,12 +417,15 @@ export const updateContents = async (req, res) => {
           scheduled_date = ?, 
           published_date = ?, 
           published_url = ?, 
+          review_url = ?,
+          editing_url = ?,
           updated_at = NOW() 
-      WHERE id = ? AND user_id = ?
+      WHERE id = ? AND ${ownerColumn} = ?
     `;
 
     const values = [
-      channels_id || null,
+      channelId ?? null,
+      editorId ?? null,
       title.trim(),
       description || null,
       script_draft || null,
@@ -315,24 +437,13 @@ export const updateContents = async (req, res) => {
         ? published_date || new Date().toISOString().split("T")[0]
         : published_date || null,
       published_url || null,
+      reviewUrl,
+      editingUrl,
       id,
       userId,
     ];
 
-    const [result] = await pool.query(query, values);
-
-    if (result.affectedRows === 0) {
-      const [contents] = await pool.query(
-        "SELECT id FROM contents WHERE id = ? AND user_id = ?",
-        [id, userId],
-      );
-      if (contents.length === 0) {
-        return res.status(404).json({
-          status: false,
-          message: "Content not found",
-        });
-      }
-    }
+    await pool.query(query, values);
 
     return res.status(200).json({
       status: true,

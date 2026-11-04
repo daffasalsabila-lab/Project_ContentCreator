@@ -12,8 +12,13 @@ const sendError = (res, status, message) => {
 };
 
 // Helper: cek apakah content dimiliki oleh user
-const isContentOwnedByUser = async (contentId, userId) => {
-    const [content] = await pool.query("SELECT id FROM contents WHERE id = ? AND user_id = ?", [contentId, userId]);
+const canAccessContent = async (contentId, user) => {
+    const [content] = await pool.query(
+        `SELECT id FROM contents
+         WHERE id = ?
+           AND (user_id = ? OR (? = 'editor' AND editor_id = ?))`,
+        [contentId, user.id, user.role, user.id]
+    );
     return content.length > 0;
 };
 
@@ -44,7 +49,7 @@ export const createMetric = async (req, res) => {
         }
     }
 
-    const isOwned = await isContentOwnedByUser(contentId, userId);
+    const isOwned = await canAccessContent(contentId, req.user);
     if(!isOwned) {
         return sendError(res, 404, "Content not found");
     }
@@ -85,9 +90,9 @@ export const getMetricsByContentId = async (req, res) => {
             return sendError(res, 400, "Invalid content ID");
         }
 
-        const isOwned = await isContentOwnedByUser(
+        const isOwned = await canAccessContent(
             contentId,
-            userId
+            req.user
         );
 
         if (!isOwned) {
@@ -122,7 +127,12 @@ export const getMetricById = async (req, res) => {
             return sendError(res, 400, "Invalid metric ID");
         }
         const [rows] = await pool.query(
-            `SELECT m.id, m.content_id, m.recorded_at, m.views_count, m.likes_count, m.comments_count, m.shares_count FROM content_metrics m JOIN contents c ON m.content_id = c.id WHERE m.id = ? AND c.user_id = ?`, [metricId, userId]
+            `SELECT m.id, m.content_id, m.recorded_at, m.views_count, m.likes_count, m.comments_count, m.shares_count
+             FROM content_metrics m
+             JOIN contents c ON m.content_id = c.id
+             WHERE m.id = ?
+               AND (c.user_id = ? OR (? = 'editor' AND c.editor_id = ?))`,
+            [metricId, userId, req.user.role, userId]
         );
         if (rows.length === 0) {
             return sendError(res, 404, "Metric not found");

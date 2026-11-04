@@ -14,13 +14,14 @@ const sendError = (res, status, message) => {
 };
 
 // Memastikan konten dimiliki oleh user yang sedang login
-const isContentOwnedByUser = async (contentId, userId) => {
+const canAccessContent = async (contentId, user) => {
   const [rows] = await db.execute(
     `SELECT id
      FROM contents
-     WHERE id = ? AND user_id = ?
+     WHERE id = ?
+       AND (user_id = ? OR (? = 'editor' AND editor_id = ?))
      LIMIT 1`,
-    [contentId, userId]
+    [contentId, user.id, user.role, user.id]
   );
 
   return rows.length > 0;
@@ -40,7 +41,7 @@ export const getAllChecklists = async (req, res) => {
       return sendError(res, 401, "User belum terautentikasi.");
     }
 
-    const isOwned = await isContentOwnedByUser(content_id, userId);
+    const isOwned = await canAccessContent(content_id, req.user);
 
     if (!isOwned) {
       return sendError(res, 404, "Konten tidak ditemukan.");
@@ -95,7 +96,7 @@ export const addChecklist = async (req, res) => {
       );
     }
 
-    const isOwned = await isContentOwnedByUser(contentId, userId);
+    const isOwned = await canAccessContent(contentId, req.user);
 
     if (!isOwned) {
       return sendError(res, 404, "Konten tidak ditemukan.");
@@ -146,9 +147,10 @@ export const toggleChecklists = async (req, res) => {
       `SELECT cc.id, cc.is_completed
        FROM content_checklists cc
        INNER JOIN contents c ON c.id = cc.content_id
-       WHERE cc.id = ? AND c.user_id = ?
+       WHERE cc.id = ?
+         AND (c.user_id = ? OR (? = 'editor' AND c.editor_id = ?))
        LIMIT 1`,
-      [checklistId, userId]
+      [checklistId, userId, req.user.role, userId]
     );
 
     if (checklists.length === 0) {
@@ -197,8 +199,9 @@ export const deleteChecklist = async (req, res) => {
       `DELETE cc
        FROM content_checklists cc
        INNER JOIN contents c ON c.id = cc.content_id
-       WHERE cc.id = ? AND c.user_id = ?`,
-      [checklistId, userId]
+       WHERE cc.id = ?
+         AND (c.user_id = ? OR (? = 'editor' AND c.editor_id = ?))`,
+      [checklistId, userId, req.user.role, userId]
     );
 
     if (result.affectedRows === 0) {

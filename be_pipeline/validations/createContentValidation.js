@@ -13,6 +13,17 @@ export const createContentSchema = Joi.object({
             "any.required": "Channel ID is required",
         }),
 
+    editor_id: Joi.number()
+        .integer()
+        .positive()
+        .allow(null)
+        .optional()
+        .messages({
+            "number.base": "Editor ID must be a number",
+            "number.integer": "Editor ID must be an integer",
+            "number.positive": "Editor ID must be greater than zero",
+        }),
+
     title: Joi.string()
         .trim()
         .min(1)

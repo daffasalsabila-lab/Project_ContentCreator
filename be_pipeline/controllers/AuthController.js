@@ -2,14 +2,6 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import pool from "../config/db.js";
 
-const USERS = [
-  {
-    name: "admin",
-    email: "admin@gmail.com",
-    password: "12345678",
-  },
-];
-
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -20,28 +12,29 @@ export const login = async (req, res) => {
       });
     }
 
-    const [user] = await pool.query(
-      "SELECT id, name, email, password_hash, role FROM users WHERE email= ?",
-      [email],
+    // Menggunakan penangkapan hasil query database yang aman
+    const [rows] = await pool.query(
+      "SELECT id, name, email, password_hash, role FROM users WHERE email = ?",
+      [email]
     );
-    if (user.length === 0) {
+
+    if (!rows || rows.length === 0) {
       return res.status(401).json({
         status: false,
-        message: "Invalid crendential",
+        message: "Invalid credential",
       });
     }
 
-    const dataUser = user[0];
+    const dataUser = rows[0];
     const isMatch = await bcrypt.compare(password, dataUser.password_hash);
     if (!isMatch) {
-      // 401 : unauthorize = login gagal
       return res.status(401).json({
         status: false,
-        message: "Invalid crendential",
+        message: "Invalid credential",
       });
     }
 
-    // jangan di masukin password nya
+    const secretKey = process.env.JWT_SECRET || "default_super_secret_key";
     const token = jwt.sign(
       {
         id: dataUser.id,
@@ -49,11 +42,11 @@ export const login = async (req, res) => {
         email: dataUser.email,
         role: dataUser.role,
       },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "1d" },
+      secretKey,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       status: true,
       message: "Login Success",
       data: {
@@ -67,33 +60,31 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        status: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    console.error("ERROR LOGIN:", error); // Tercetak jelas di terminal backend
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
 export const register = async (req, res) => {
-  // proses regis
   try {
-    const { name, email, password } = req.body;
-    // validasi input wajib
+    const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({
         status: false,
-        message: "Name, email anad password required",
+        message: "Name, email and password required",
       });
     }
 
     const [existingUser] = await pool.query(
       "SELECT id FROM users WHERE email = ?",
-      [email],
+      [email]
     );
-    if (existingUser.length > 0) {
+    
+    if (existingUser && existingUser.length > 0) {
       return res.status(409).json({
         status: false,
         message: "Email already taken",
@@ -101,17 +92,15 @@ export const register = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    //  Hash password sebelum disimpan
     const [result] = await pool.query(
-      `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`,
-      [name.trim(), email.trim().toLowerCase(), passwordHash],
+      `INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)`,
+      [name.trim(), email.trim().toLowerCase(), passwordHash, role]
     );
-    //  simpan pengguna baru ke database
+
     const [newUsers] = await pool.query(
       `SELECT id, name, email, role, created_at FROM users WHERE id = ?`,
-      [result.insertId],
+      [result.insertId]
     );
-    // Ambil data pengguna yang baru dibuat
 
     return res.status(201).json({
       status: true,
@@ -121,8 +110,8 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
+    console.error("ERROR REGISTER:", error);
+    return res.status(500).json({
       status: false,
       message: "Internal server error",
       error: error.message,
