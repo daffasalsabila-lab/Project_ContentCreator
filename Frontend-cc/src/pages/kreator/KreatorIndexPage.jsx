@@ -306,7 +306,7 @@ export default function KreatorIndexPage() {
                                 to="/alur-konten"
                                 className="inline-flex items-center gap-1 text-sm font-semibold text-pink-600 hover:text-pink-700 dark:text-pink-400"
                             >
-                                Kelola pipeline <ArrowRight size={15} />
+                                {/* Kelola pipeline <ArrowRight size={15} /> */}
                             </Link>
                         </div>
 
@@ -401,9 +401,9 @@ export default function KreatorIndexPage() {
                             <div className="mt-5 space-y-3">
                                 {upcomingContents.map((content) => (
                                     <Link
-                                        key={content.id}
-                                        to="/alur-konten"
-                                        className="block rounded-xl border border-slate-100 p-3 transition hover:border-pink-200 hover:bg-pink-50/40 dark:border-slate-800 dark:hover:border-pink-900 dark:hover:bg-pink-950/20"
+                                        // key={content.id}
+                                        // to="/alur-konten"
+                                        // className="block rounded-xl border border-slate-100 p-3 transition hover:border-pink-200 hover:bg-pink-50/40 dark:border-slate-800 dark:hover:border-pink-900 dark:hover:bg-pink-950/20"
                                     >
                                         <div className="flex items-start justify-between gap-3">
                                             <p className="line-clamp-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -437,7 +437,7 @@ export default function KreatorIndexPage() {
                             to="/alur-konten"
                             className="inline-flex items-center gap-1 text-sm font-semibold text-pink-600 hover:text-pink-700 dark:text-pink-400"
                         >
-                            Lihat semua <ArrowRight size={15} />
+                            {/* Lihat semua <ArrowRight size={15} /> */}
                         </Link>
                     </div>
 
@@ -461,13 +461,13 @@ export default function KreatorIndexPage() {
                             <p className="mt-1 text-sm text-slate-500">
                                 Mulai dengan membuat draf konten pertamamu.
                             </p>
-                            <Link
+                            {/* <Link
                                 to="/alur-konten"
                                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-pink-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-pink-700"
                             >
                                 <Plus size={16} />
                                 Buat konten
-                            </Link>
+                            </Link> */}
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-slate-800">

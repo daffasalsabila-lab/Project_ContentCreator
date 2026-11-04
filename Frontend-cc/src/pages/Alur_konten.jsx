@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import contentService from "../services/contentService";
+import Saluran from "./Saluran";
 
 // ==========================================
 // KONFIGURASI
@@ -59,6 +60,113 @@ const validUrl = (value) => {
     return false;
   }
 };
+
+const getPublishedEmbed = (value) => {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return null;
+
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const videoId =
+        url.pathname.match(/^\/(?:embed|shorts)\/([A-Za-z0-9_-]+)/)?.[1] ||
+        (url.pathname === "/watch" ? url.searchParams.get("v") : null);
+      return videoId
+        ? {
+            src: `https://www.youtube-nocookie.com/embed/${videoId}`,
+            title: "Video YouTube",
+            aspectClass: "aspect-video",
+          }
+        : null;
+    }
+
+    if (host === "youtu.be") {
+      const videoId = url.pathname.split("/").filter(Boolean)[0];
+      return videoId && /^[A-Za-z0-9_-]+$/.test(videoId)
+        ? {
+            src: `https://www.youtube-nocookie.com/embed/${videoId}`,
+            title: "Video YouTube",
+            aspectClass: "aspect-video",
+          }
+        : null;
+    }
+
+    if (host === "tiktok.com") {
+      const videoId = url.pathname.match(/\/video\/(\d+)/)?.[1];
+      return videoId
+        ? {
+            src: `https://www.tiktok.com/player/v1/${videoId}`,
+            title: "Video TikTok",
+            aspectClass: "aspect-[9/16] max-w-sm",
+          }
+        : null;
+    }
+
+    if (host === "instagram.com") {
+      const match = url.pathname.match(/^\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/);
+      return match
+        ? {
+            src: `https://www.instagram.com/p/${match[1]}/embed`,
+            title: "Posting Instagram",
+            aspectClass: "aspect-[4/5]",
+          }
+        : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+function ContentLink({ label, url }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+        {label}
+      </p>
+      {validUrl(url) ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 block break-all text-sm text-blue-600 underline dark:text-blue-400"
+        >
+          {url}
+        </a>
+      ) : (
+        <p className="mt-1 text-xs text-slate-400">Tautan belum tersedia.</p>
+      )}
+    </div>
+  );
+}
+
+function PublishedVideoEmbed({ url }) {
+  const embed = getPublishedEmbed(url);
+  if (!embed) return null;
+
+  return (
+    <div className="mt-4">
+      <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+        Pratinjau Video
+      </h4>
+      <div
+        className={`mx-auto w-full overflow-hidden rounded-xl bg-black ${embed.aspectClass}`}
+      >
+        <iframe
+          src={embed.src}
+          title={embed.title}
+          className="h-full w-full border-0"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+    </div>
+  );
+}
 
 // ==========================================
 // MODAL
@@ -104,9 +212,12 @@ function Modal({ title, subtitle, onClose, children, wide = false }) {
 // MODAL TAMBAH KONTEN
 // ==========================================
 
-function AddContentModal({ channels, onClose, onSave }) {
+function AddContentModal({ channels, editors, onClose, onSave }) {
+  console.log(channels)
+  
   const [form, setForm] = useState({
     channels_id: channels[0]?.id || "",
+    editor_id: "",
     title: "",
     description: "",
     script_draft: "",
@@ -121,7 +232,6 @@ function AddContentModal({ channels, onClose, onSave }) {
       [key]: e.target.value,
     }));
   };
-
   return (
     <Modal title="Buat Draf Ide Konten Baru" onClose={onClose}>
       <form
@@ -154,6 +264,24 @@ function AddContentModal({ channels, onClose, onSave }) {
               Tambahkan saluran terlebih dahulu sebelum membuat konten.
             </p>
           )}
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-500">
+            Editor
+          </label>
+          <select
+            className={inputClass}
+            value={form.editor_id}
+            onChange={change("editor_id")}
+          >
+            <option value="">Tanpa editor</option>
+            {editors.map((editor) => (
+              <option key={editor.id} value={editor.id}>
+                {editor.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -716,7 +844,18 @@ function MetricsPanel({ contentId }) {
 // MODAL DETAIL KONTEN
 // ==========================================
 
-function DetailModal({ item, onChange, onClose, onSave }) {
+function DetailModal({
+  item,
+  channels,
+  editors,
+  canAssignEditor,
+  userRole,
+  onChange,
+  onClose,
+  onSave,
+}) {
+  console.log(channels)
+
   const field = (key) => (e) => {
     onChange(key, e.target.value);
   };
@@ -754,6 +893,44 @@ function DetailModal({ item, onChange, onClose, onSave }) {
             onChange={field("description")}
           />
         </div>
+
+        {canAssignEditor && (
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-500">
+              Editor
+            </label>
+            <select
+              className={inputClass}
+              value={item.editor_id ?? ""}
+              onChange={field("editor_id")}
+            >
+              <option value="">Tanpa editor</option>
+              {editors.map((editor) => (
+                <option key={editor.id} value={editor.id}>
+                  {editor.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-500">
+              Saluran
+            </label>
+            <select
+              className={inputClass}
+              value={item.channels}
+              onChange={field("channels_id")}
+            >
+              <option value="">Tanpa saluran</option>
+              {channels && channels.map((channel) => (
+                <option key={channel.id} value={channel.id}>
+                  {channel.handle_name}
+                </option>
+              ))}
+            </select>
+          </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -802,10 +979,58 @@ function DetailModal({ item, onChange, onClose, onSave }) {
           />
         </div>
 
+        {["recording", "editing", "ready"].includes(item.status) && (
+          <section className="space-y-2 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+            {userRole === "creator" ? (
+              <>
+                <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Link Review
+                </label>
+                <input
+                  type="url"
+                  className={inputClass}
+                  value={item.review_url || ""}
+                  onChange={field("review_url")}
+                  placeholder="https://..."
+                />
+              </>
+            ) : (
+              <ContentLink label="Link Review" url={item.review_url} />
+            )}
+
+            {(item.status === "editing" || item.status === "ready") && userRole === "editor" && (
+              <>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Link Hasil Editing
+                </label>
+                <input
+                  type="url"
+                  className={inputClass}
+                  value={item.editing_url || ""}
+                  onChange={field("editing_url")}
+                  placeholder="https://..."
+                />
+              </>
+            )}
+          </section>
+        )}
+
+        {item.status === "ready" && userRole === "creator" && (
+          <section className="space-y-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+            <ContentLink label="Link Review" url={item.review_url} />
+            <ContentLink
+              label="Link Hasil Editing"
+              url={item.editing_url}
+            />
+          </section>
+        )}
+
         {/* Checklist */}
         <ChecklistPanel key={item.id} contentId={item.id} />
 
-        <MetricsPanel key={`metrics-${item.id}`} contentId={item.id} />
+        {item.status === "published" && (
+          <MetricsPanel key={`metrics-${item.id}`} contentId={item.id} />
+        )}
 
         <div className="rounded-2xl border border-pink-100 bg-pink-50/50 p-4 dark:border-pink-950 dark:bg-pink-950/30">
           <label className="mb-1 flex items-center gap-2 text-xs font-semibold text-pink-800 dark:text-pink-300">
@@ -824,6 +1049,9 @@ function DetailModal({ item, onChange, onClose, onSave }) {
           <p className="mt-1.5 text-xs text-pink-600 dark:text-pink-400">
             Konten tidak dapat dipublikasikan tanpa URL yang valid.
           </p>
+          {item.status === "published" && (
+            <PublishedVideoEmbed url={item.published_url} />
+          )}
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
@@ -855,6 +1083,7 @@ function DetailModal({ item, onChange, onClose, onSave }) {
 export default function Alur_konten() {
   const [contents, setContents] = useState([]);
   const [channels, setChannels] = useState([]);
+  const [editors, setEditors] = useState([]);
   const [search, setSearch] = useState("");
   const [filterStage, setFilterStage] = useState("All");
   const [sortBy, setSortBy] = useState("date-asc");
@@ -862,21 +1091,38 @@ export default function Alur_konten() {
   const [activeContent, setActiveContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
+  const isCreator = currentUser?.role === "creator";
 
   // Mengambil data konten dan channel
   useEffect(() => {
-    Promise.all([
+    const requests = [
       contentService.getContents(),
       contentService.getChannels(),
-    ])
-      .then(([contentRes, channelRes]) => {
+    ];
+    if (isCreator) requests.push(contentService.getEditors());
+
+    Promise.all(requests)
+      .then(([contentRes, channelRes, editorRes]) => {
         const contentData = unwrap(contentRes);
         const channelData = unwrap(channelRes);
-        if (!Array.isArray(contentData) || !Array.isArray(channelData)) {
+        const editorData = editorRes ? unwrap(editorRes) : [];
+        if (
+          !Array.isArray(contentData) ||
+          !Array.isArray(channelData) ||
+          !Array.isArray(editorData)
+        ) {
           throw new Error("Format data konten atau saluran tidak valid.");
         }
         setContents(contentData);
         setChannels(channelData);
+        setEditors(editorData);
       })
       .catch((error) => {
         console.error("Gagal mengambil data:", error);
@@ -888,7 +1134,7 @@ export default function Alur_konten() {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [isCreator]);
 
   // Filter dan sorting konten
   const filteredContents = useMemo(() => {
@@ -1007,6 +1253,9 @@ export default function Alur_konten() {
     const updated = {
       ...activeContent,
       title,
+      editor_id: activeContent.editor_id
+        ? Number(activeContent.editor_id)
+        : null,
       published_date:
         activeContent.status === "published"
           ? activeContent.published_date || today()
@@ -1038,6 +1287,7 @@ export default function Alur_konten() {
     const payload = {
       ...form,
       channels_id: form.channels_id ? Number(form.channels_id) : null,
+      editor_id: form.editor_id ? Number(form.editor_id) : null,
       title: form.title.trim(),
       description: form.description.trim(),
       script_draft: form.script_draft.trim(),
@@ -1111,15 +1361,17 @@ export default function Alur_konten() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            disabled={loading || loadError !== ""}
-            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-md"
-          >
-            <Plus size={19} />
-            Tambah Konten Baru
-          </button>
+          {isCreator && (
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              disabled={loading || loadError !== ""}
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 px-5 py-3 font-semibold text-white shadow-md"
+            >
+              <Plus size={19} />
+              Tambah Konten Baru
+            </button>
+          )}
         </header>
 
         {/* STATISTIK */}
@@ -1160,6 +1412,7 @@ export default function Alur_konten() {
         {showAddModal && (
           <AddContentModal
             channels={channels}
+            editors={editors}
             onClose={() => setShowAddModal(false)}
             onSave={addContent}
           />
@@ -1168,7 +1421,11 @@ export default function Alur_konten() {
         {/* MODAL DETAIL KONTEN */}
         {activeContent && (
           <DetailModal
+            channels={channels}
             item={activeContent}
+            editors={editors}
+            canAssignEditor={isCreator}
+            userRole={currentUser?.role}
             onChange={(key, value) =>
               setActiveContent((prev) => ({
                 ...prev,
@@ -1347,14 +1604,16 @@ export default function Alur_konten() {
                           Detail
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => deleteContent(item.id)}
-                          aria-label={`Hapus ${item.title}`}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {currentUser?.role !== "editor" && (
+                          <button
+                            type="button"
+                            onClick={() => deleteContent(item.id)}
+                            aria-label={`Hapus ${item.title}`}
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

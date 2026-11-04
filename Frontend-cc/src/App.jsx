@@ -32,9 +32,11 @@ export default function App() {
         </Route>
         <Route element={<PengeditLayout />}>
           <Route path="/pengedit/dashboard" element={<PengeditIndexPage />} />
+          <Route path="/pengedit/alur-konten" element={<Alur_konten />} />
         </Route>
         <Route element={<AdminLayout />}>
           <Route path="/admin/dashboard" element={<AdminIndexPage />} />
+          <Route path="/admin/alur-konten" element={<Alur_konten />} />
           <Route path="/admin/saluran" element={<AdminSaluran />} />
         </Route>
         {/* Rute Autentikasi (Tampil penuh tanpa sidebar utama) */}

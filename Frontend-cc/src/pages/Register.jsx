@@ -20,6 +20,7 @@ export default function Register() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState("creator");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -49,7 +50,7 @@ export default function Register() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/v1/auth/register",
+        "http://localhost:3000/api/v1/auth/register",
         {
           method: "POST",
           headers: {
@@ -58,6 +59,7 @@ export default function Register() {
           body: JSON.stringify({
             name,
             email,
+            role,
             password,
           }),
         }
@@ -77,6 +79,7 @@ export default function Register() {
       // Kosongkan form setelah berhasil
       setName("");
       setEmail("");
+      setRole("creator");
       setPassword("");
       setConfirmPassword("");
 
@@ -214,6 +217,27 @@ export default function Register() {
                     className="h-12 border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-pink-500 focus-visible:ring-pink-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
 
+                </div>
+
+                {/* Role */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="role"
+                    className="text-slate-700 dark:text-slate-300"
+                  >
+                    Daftar sebagai
+                  </Label>
+                  <select
+                    id="role"
+                    name="role"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    required
+                    className="h-12 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus-visible:border-pink-500 focus-visible:ring-2 focus-visible:ring-pink-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    <option value="creator">Creator</option>
+                    <option value="editor">Editor</option>
+                  </select>
                 </div>
 
                 {/* Password */}

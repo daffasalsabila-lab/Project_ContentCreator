@@ -30,6 +30,10 @@ export const contentService = {
     return await api.get("/channels");
   },
 
+  async getEditors() {
+    return await api.get("/users/editors");
+  },
+
   async createChannel(channelData) {
     // channelData: { platform, handle_name }
     return await api.post("/channels", channelData);
@@ -52,7 +56,7 @@ export const contentService = {
   },
 
   async createContent(contentData) {
-    // contentData: { channels_id, title, description, script_draft, format_type, priority, scheduled_date }
+    // contentData may also include editor_id for creator assignments.
     return await api.post("/contents", contentData);
   },
 
@@ -85,7 +89,7 @@ export const contentService = {
   },
 
   async toggleChecklist(checklistId) {
-    return await api.patch(`/checklists/${checklistId}/toggle`);
+    return await api.put(`/checklists/${checklistId}/toggle`);
   },
 
   async deleteChecklist(checklistId) {

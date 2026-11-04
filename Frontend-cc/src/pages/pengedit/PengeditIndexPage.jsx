@@ -218,14 +218,14 @@ export default function PengeditIndexPage() {
                                 kontenmu. Lihat progres terbaru dan lanjutkan pekerjaan hari ini.
                             </p>
                         </div>
-                        <Link
+                        {/* <Link
                             to="/alur-konten"
                             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-pink-700 shadow-sm transition hover:bg-pink-50 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white"
                         >
                             <Plus size={18} />
                             Buat Konten
                             <ArrowRight size={16} />
-                        </Link>
+                        </Link> */}
                     </div>
                     <div className="relative mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 border-white/20 pt-5 text-xs text-white/80">
                         <span className="inline-flex items-center gap-2">
@@ -239,8 +239,8 @@ export default function PengeditIndexPage() {
                         </span>
                         <span className="inline-flex items-center gap-2">
                             <Radio size={15} />
-                            Ringkasan pipeline kontenmu
                         </span>
+                            Ringkasan pipeline kontenmu
                     </div>
                 </header>
 
@@ -306,7 +306,7 @@ export default function PengeditIndexPage() {
                                 to="/alur-konten"
                                 className="inline-flex items-center gap-1 text-sm font-semibold text-pink-600 hover:text-pink-700 dark:text-pink-400"
                             >
-                                Kelola pipeline <ArrowRight size={15} />
+                                {/* Kelola pipeline <ArrowRight size={15} /> */}
                             </Link>
                         </div>
 
@@ -401,9 +401,9 @@ export default function PengeditIndexPage() {
                             <div className="mt-5 space-y-3">
                                 {upcomingContents.map((content) => (
                                     <Link
-                                        key={content.id}
-                                        to="/alur-konten"
-                                        className="block rounded-xl border border-slate-100 p-3 transition hover:border-pink-200 hover:bg-pink-50/40 dark:border-slate-800 dark:hover:border-pink-900 dark:hover:bg-pink-950/20"
+                                        // key={content.id}
+                                        // to="/alur-konten"
+                                        // className="block rounded-xl border border-slate-100 p-3 transition hover:border-pink-200 hover:bg-pink-50/40 dark:border-slate-800 dark:hover:border-pink-900 dark:hover:bg-pink-950/20"
                                     >
                                         <div className="flex items-start justify-between gap-3">
                                             <p className="line-clamp-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -437,7 +437,7 @@ export default function PengeditIndexPage() {
                             to="/alur-konten"
                             className="inline-flex items-center gap-1 text-sm font-semibold text-pink-600 hover:text-pink-700 dark:text-pink-400"
                         >
-                            Lihat semua <ArrowRight size={15} />
+                            {/* Lihat semua <ArrowRight size={15} /> */}
                         </Link>
                     </div>
 

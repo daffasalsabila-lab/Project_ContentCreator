@@ -2,7 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
   // Mengarahkan langsung ke IP server jaringan lokal agar laptop lain bisa mengakses tanpa kendala CORS
-  baseURL: "192.168.40.145:3000/api/v1",
+  baseURL: "http://localhost:3000/api/v1",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

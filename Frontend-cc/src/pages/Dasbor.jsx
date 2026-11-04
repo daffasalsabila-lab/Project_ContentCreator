@@ -303,7 +303,7 @@ export default function Dasbor() {
               </div>
               <Link
                 to="/alur-konten"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-pink-600 hover:text-pink-700 dark:text-pink-400"
+                // className="inline-flex items-center gap-1 text-sm font-semibold text-pink-600 hover:text-pink-700 dark:text-pink-400"
               >
                 Kelola pipeline <ArrowRight size={15} />
               </Link>
